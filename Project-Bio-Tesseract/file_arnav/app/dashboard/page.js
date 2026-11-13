@@ -1,9 +1,8 @@
-'use strict';
 'use client';
 
 import React from 'react';
-import Home from '../page';
+import DashboardMain from '../../components/dashboard/DashboardMain';
 
 export default function DashboardPage() {
-  return <Home />;
+  return <DashboardMain />;
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import BioTesseractLogo from '../logo/BioTesseractLogo';
 
 export default function Navbar({
   activeAstronaut,
@@ -54,21 +56,9 @@ export default function Navbar({
       boxSizing: 'border-box',
       gap: '16px',
     }}>
-      {/* ── Brand & Mission ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(56, 189, 248, 0.1)',
-          border: '1px solid rgba(56, 189, 248, 0.3)',
-          borderRadius: '6px',
-          color: 'var(--hud-cyan)',
-        }}>
-          <span aria-hidden="true" style={{ fontSize: '1.15rem', fontWeight: 700 }}>+</span>
-        </div>
+      {/* ── Brand & Mission with Project Logo ── */}
+      <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+        <BioTesseractLogo size={36} />
 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -83,7 +73,7 @@ export default function Navbar({
             AEROSPACE MEDICAL MONITORING SYSTEM
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* ── Center Mission Clocks & Comm Status ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }} className="nav-center-clocks">
@@ -124,6 +114,15 @@ export default function Navbar({
 
       {/* ── Right Controls ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Link back to Hero */}
+        <Link
+          href="/"
+          className="hud-btn"
+          style={{ padding: '6px 12px', fontSize: '0.78rem', textDecoration: 'none' }}
+        >
+          ← Home
+        </Link>
+
         {/* Astronaut Selector */}
         <select
           value={activeAstronaut?.id || 'AST-01'}
