@@ -6,7 +6,6 @@ import React from 'react';
 export default function Sidebar({ activeTab, onTabChange, activeAstronaut }) {
   const navItems = [
     { id: 'overview', label: 'Mission Overview', icon: '🌐', badge: 'LIVE' },
-    { id: 'tesseract', label: '4D Bio-Tesseract', icon: '💠', badge: 'HYPER' },
     { id: 'ecg', label: 'Cardio & Vitals ECG', icon: '🫀', badge: 'REALTIME' },
     { id: 'lifesupport', label: 'EVA Suit Life Support', icon: '🧑‍🚀', badge: 'EMU-X' },
     { id: 'ai-doc', label: 'AI Bio-Diagnostic Doc', icon: '🧠', badge: 'NEURAL' },

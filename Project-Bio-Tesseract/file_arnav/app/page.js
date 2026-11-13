@@ -8,7 +8,6 @@ import Sidebar from '../components/shell/Sidebar';
 
 // Section components (created by section workers)
 import OverviewSection from '../components/overview/OverviewSection';
-import TesseractSection from '../components/tesseract/TesseractSection';
 import BioMonitorSection from '../components/biomonitor/BioMonitorSection';
 import LifeSupportSection from '../components/lifesupport/LifeSupportSection';
 import MedicalSection from '../components/medical/MedicalSection';
@@ -29,7 +28,7 @@ const INITIAL_ALERTS = [
   { id: 'ALT-101', severity: 'NOMINAL', title: 'DSN Goldstone X-band lock confirmed', subsystem: 'Comms', time: '14:28:02', acknowledged: true },
   { id: 'ALT-102', severity: 'NOMINAL', title: 'EMU-X Suit telemetry sync complete', subsystem: 'PLSS', time: '14:27:40', acknowledged: true },
   { id: 'ALT-103', severity: 'CAUTION', title: 'Solar particle event flux elevation (low risk)', subsystem: 'Radiation', time: '14:25:15', acknowledged: false },
-  { id: 'ALT-104', severity: 'NOMINAL', title: '4D Bio-Tesseract hypercube resonance calibrated', subsystem: 'Bio-Core', time: '14:20:00', acknowledged: true }
+  { id: 'ALT-104', severity: 'NOMINAL', title: 'Crew telemetry baseline verified', subsystem: 'Bio-Core', time: '14:20:00', acknowledged: true }
 ];
 
 // =====================================================================
@@ -49,6 +48,20 @@ export default function Home() {
   const activeAstronaut = crew.find(c => c.id === activeAstronautId) || crew[0];
 
   // ── Telemetry simulation — 2500 ms drift ───────────────────────────
+  useEffect(() => {
+    if (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    let frame = 0;
+    const moveGlow = (event) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--pointer-x', `${event.clientX}px`);
+        document.documentElement.style.setProperty('--pointer-y', `${event.clientY}px`);
+      });
+    };
+    window.addEventListener('pointermove', moveGlow, { passive: true });
+    return () => { window.removeEventListener('pointermove', moveGlow); cancelAnimationFrame(frame); };
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCrew(prevCrew =>
@@ -169,14 +182,6 @@ export default function Home() {
               isAlarmActive={isAlarmActive}
               onToggleAlarm={handleToggleAlarm}
               onNavigate={handleTabChange}
-            />
-          )}
-
-          {activeTab === 'tesseract' && (
-            <TesseractSection
-              activeAstronaut={activeAstronaut}
-              crew={crew}
-              onSelectAstronaut={setActiveAstronautId}
             />
           )}
 

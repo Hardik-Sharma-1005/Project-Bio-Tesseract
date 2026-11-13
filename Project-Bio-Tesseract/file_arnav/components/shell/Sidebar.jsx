@@ -1,12 +1,11 @@
 'use client';
 
 const NAV_ITEMS = [
-  { id: 'overview', label: 'Mission Overview', num: '01', icon: '🌐' },
-  { id: 'tesseract', label: '4D Tesseract', num: '02', icon: '💠' },
-  { id: 'biomonitor', label: 'Bio-Monitor ECG', num: '03', icon: '🫀' },
-  { id: 'lifesupport', label: 'Life Support', num: '04', icon: '🧑‍🚀' },
-  { id: 'medical', label: 'AI Med Advisor', num: '05', icon: '🧠' },
-  { id: 'crew', label: 'Crew & Alerts', num: '06', icon: '👥' },
+  { id: 'overview', label: 'Mission Overview', num: '01', icon: '◈' },
+  { id: 'biomonitor', label: 'Bio-Monitor', num: '02', icon: '⌁' },
+  { id: 'lifesupport', label: 'Life Support', num: '03', icon: '◇' },
+  { id: 'medical', label: 'AI Medical Advisor', num: '04', icon: '✳' },
+  { id: 'crew', label: 'Crew & Alerts', num: '05', icon: '◎' },
 ];
 
 export default function Sidebar({ activeTab, onTabChange, activeAstronaut, isOpen, onClose }) {

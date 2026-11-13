@@ -30,13 +30,6 @@ export default function Navbar({
       );
     };
 
-    const now = new Date();
-    setUtc(
-      now.getUTCHours().toString().padStart(2, '0') + ':' +
-      now.getUTCMinutes().toString().padStart(2, '0') + ':' +
-      now.getUTCSeconds().toString().padStart(2, '0')
-    );
-
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -74,15 +67,7 @@ export default function Navbar({
           borderRadius: '6px',
           color: 'var(--hud-cyan)',
         }}>
-          {/* Crisp Tesseract Glyph */}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <rect x="7" y="7" width="10" height="10" />
-            <line x1="3" y1="3" x2="7" y2="7" />
-            <line x1="21" y1="3" x2="17" y2="7" />
-            <line x1="3" y1="21" x2="7" y2="17" />
-            <line x1="21" y1="21" x2="17" y2="17" />
-          </svg>
+          <span aria-hidden="true" style={{ fontSize: '1.15rem', fontWeight: 700 }}>+</span>
         </div>
 
         <div>

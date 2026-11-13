@@ -11,5 +11,5 @@ export const INITIAL_ALERTS = [
   { id: 'ALT-101', severity: 'NOMINAL', title: 'DSN Goldstone X-band lock confirmed', subsystem: 'Comms', time: '14:28:02', acknowledged: true },
   { id: 'ALT-102', severity: 'NOMINAL', title: 'EMU-X Suit telemetry sync complete', subsystem: 'PLSS', time: '14:27:40', acknowledged: true },
   { id: 'ALT-103', severity: 'CAUTION', title: 'Solar particle event flux elevation (low risk)', subsystem: 'Radiation', time: '14:25:15', acknowledged: false },
-  { id: 'ALT-104', severity: 'NOMINAL', title: '4D Bio-Tesseract hypercube resonance calibrated', subsystem: 'Bio-Core', time: '14:20:00', acknowledged: true }
+  { id: 'ALT-104', severity: 'NOMINAL', title: 'Crew telemetry baseline verified', subsystem: 'Bio-Core', time: '14:20:00', acknowledged: true }
 ];

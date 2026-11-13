@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* =====================================================================
    SPACIOUS AEROSPACE DESIGN SYSTEM — Project Bio-Tesseract
@@ -36,14 +35,14 @@
 
   /* Typography */
   --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #b5c2d5;
+  --text-muted: #91a0b5;
   --text-cyan: #38bdf8;
   --text-emerald: #34d399;
 
-  --font-hud: 'Orbitron', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-ui: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-hud: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  --font-ui: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 
   --sidebar-width: 260px;
   --navbar-height: 60px;
@@ -354,4 +353,38 @@ body::before {
   .main-viewport {
     padding: 20px 16px;
   }
+}
+
+/* Calm mission console refinements */
+:root { --pointer-x: 50vw; --pointer-y: 20vh; }
+body {
+  background: radial-gradient(560px circle at var(--pointer-x) var(--pointer-y), rgba(34,112,160,.12), transparent 68%), radial-gradient(900px circle at 85% -10%, rgba(17,56,93,.22), transparent 60%), var(--bg-deep-space);
+  font-family: var(--font-ui); font-size: 16px; line-height: 1.6;
+}
+.font-orbitron { letter-spacing: .015em; }
+.main-viewport { max-width: 1680px; padding: 36px clamp(20px, 3vw, 48px); }
+.hud-panel { border-radius: 12px; background: linear-gradient(145deg, rgba(16,27,47,.94), rgba(11,19,34,.96)); border-color: rgba(148,179,209,.15); box-shadow: 0 12px 36px rgba(0,0,0,.12); }
+.hud-panel:hover { border-color: rgba(56,189,248,.32); box-shadow: 0 14px 38px rgba(0,0,0,.2); }
+.metric-card { border-radius: 10px; padding: 16px 18px; background: rgba(255,255,255,.035); }
+.metric-card .label { font-size: .84rem; letter-spacing: .035em; }
+.metric-card .value { font-size: 1.55rem; }
+.section-header { padding: 22px 26px; border-radius: 12px; margin-bottom: 26px; }
+.hud-btn { min-height: 40px; border-radius: 8px; font-size: .92rem; letter-spacing: .01em; }
+.hud-btn:focus-visible, button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--hud-cyan); outline-offset: 3px; }
+.status-dot.nominal, .status-dot.warning, .status-dot.critical { box-shadow: none; }
+.sidebar-console { background: rgba(9,15,27,.96) !important; border-color: rgba(148,179,209,.12) !important; }
+.sidebar-btn { border-radius: 9px !important; min-height: 46px; }
+.sidebar-btn:hover { transform: translateX(2px); }
+.main-viewport > * { animation: section-enter .32s ease both; }
+.hud-panel, .crew-dossier-grid > *, .metric-card { transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+.crew-dossier-grid > *:hover, .metric-card:hover { transform: translateY(-2px); }
+button:active { transform: translateY(1px) scale(.99); }
+@keyframes section-enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes status-breathe { 50% { opacity: .55; } }
+.status-dot.critical { animation: status-breathe 1.8s ease-in-out infinite; }
+@media (max-width: 1024px) { .main-viewport { padding: 26px 20px; } }
+@media (max-width: 640px) { .main-viewport { padding: 20px 14px; } .section-header { padding: 18px; } .metric-card { padding: 13px; } }
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  body { background: radial-gradient(900px circle at 85% -10%, rgba(17,56,93,.18), transparent 60%), var(--bg-deep-space); }
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

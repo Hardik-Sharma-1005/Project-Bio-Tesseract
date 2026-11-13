@@ -347,7 +347,7 @@ export default function OverviewSection({
           </div>
         </div>
 
-        {/* Right Column: Subsystems, AI Advisor, Minimal 4D Preview */}
+        {/* Right Column: Subsystems and AI Advisor */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Card 3: Life Support Overview */}
           <div className="hud-panel" style={{ padding: '20px' }}>
@@ -426,42 +426,6 @@ export default function OverviewSection({
             </button>
           </div>
 
-          {/* Card 5: 4D Tesseract Minimal Preview */}
-          <div className="hud-panel" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '6px',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--hud-cyan)',
-                fontSize: '1.2rem',
-                flexShrink: 0
-              }}>
-                💠
-              </div>
-              <div>
-                <div className="font-orbitron" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
-                  4D TESSERACT HYPERCUBE
-                </div>
-                <div className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Pulse Coupling: {(hr / 60).toFixed(2)} Hz • 16 Vertices
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => onNavigate && onNavigate('tesseract')}
-              className="hud-btn"
-              style={{ fontSize: '0.75rem', padding: '6px 12px' }}
-            >
-              Explore 4D →
-            </button>
-          </div>
         </div>
       </div>
 

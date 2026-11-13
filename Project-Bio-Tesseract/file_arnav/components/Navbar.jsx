@@ -52,7 +52,6 @@ export default function Navbar({ activeAstronaut, onSelectAstronaut, isAlarmActi
           boxShadow: '0 0 15px rgba(0, 240, 255, 0.5)',
           border: '1px solid #00f0ff'
         }}>
-          {/* Tesseract 4D Icon */}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2" stroke="#00f0ff" />
             <rect x="7" y="7" width="10" height="10" stroke="#00ff88" />
