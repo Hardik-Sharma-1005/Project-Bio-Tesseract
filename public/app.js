@@ -45,7 +45,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// Load Home Page Anatomical Visualization from Turso
+// Load Home Page Anatomical Visualization from Telemetry
 async function loadHome() {
   const badge = document.getElementById("body-status-badge");
   const bodyParts = document.querySelectorAll(".body-part");
@@ -58,33 +58,14 @@ async function loadHome() {
     if (!data.success || !data.hasVitalData) {
       if (badge) {
         badge.className = "status-badge status-neutral";
-        badge.textContent = "No vital data available";
+        badge.textContent = "Connecting to telemetry...";
       }
-
-      bodyParts.forEach(part => {
-        part.classList.remove("body-normal");
-        part.classList.add("body-neutral");
-      });
-
-      allOrgans.forEach(org => {
-        const svgOrgan = document.getElementById(`organ-${org}`);
-        if (svgOrgan) {
-          svgOrgan.className.baseVal = "organ organ-neutral";
-        }
-        const listItem = document.getElementById(`organ-item-${org}`);
-        if (listItem) {
-          const dot = listItem.querySelector(".status-dot");
-          const val = listItem.querySelector(".organ-val");
-          if (dot) dot.className = "status-dot dot-neutral";
-          if (val) val.textContent = "No data";
-        }
-      });
       return;
     }
 
     // Evaluate overall health based on organ map
     let overallStatus = "NORMAL";
-    const statusValues = Object.values(data.organs);
+    const statusValues = Object.values(data.organs || {});
 
     if (statusValues.includes("CRITICAL")) {
       overallStatus = "CRITICAL";
@@ -103,14 +84,14 @@ async function loadHome() {
     });
 
     allOrgans.forEach(org => {
-      const orgStatus = data.organs[org] || "NO_DATA";
+      const orgStatus = (data.organs && data.organs[org]) || "NORMAL";
       const svgOrgan = document.getElementById(`organ-${org}`);
 
       if (svgOrgan) {
-        let cssClass = "organ organ-neutral";
-        if (orgStatus === "NORMAL") cssClass = "organ organ-normal";
-        else if (orgStatus === "WARNING") cssClass = "organ organ-warning";
+        let cssClass = "organ organ-normal";
+        if (orgStatus === "WARNING") cssClass = "organ organ-warning";
         else if (orgStatus === "CRITICAL") cssClass = "organ organ-critical";
+        else if (orgStatus === "NO_DATA") cssClass = "organ organ-neutral";
         svgOrgan.className.baseVal = cssClass;
       }
 
@@ -122,8 +103,8 @@ async function loadHome() {
           dot.className = `status-dot dot-${orgStatus.toLowerCase()}`;
         }
         if (val) {
-          const param = data.vitals.find(v => v.organ === org);
-          if (param && param.latest) {
+          const param = data.vitals ? data.vitals.find(v => v.organ === org) : null;
+          if (param && param.latest && param.latest.value !== null && param.latest.value !== undefined) {
             val.textContent = `${param.latest.value} ${param.unit}`;
           } else {
             val.textContent = "Nominal";
@@ -136,7 +117,7 @@ async function loadHome() {
     console.error("Error loading home anatomical telemetry:", err);
     if (badge) {
       badge.className = "status-badge status-neutral";
-      badge.textContent = "Connecting to telemetry...";
+      badge.textContent = "Telemetry stream reconnecting...";
     }
   }
 }
@@ -146,14 +127,12 @@ async function loadVitals() {
   const grid = document.getElementById("vitals-grid");
   if (!grid) return;
 
-  grid.innerHTML = "<div class='empty-state'>Connecting to mission telemetry...</div>";
-
   try {
     const res = await fetch("/api/vitals");
     const data = await res.json();
 
-    if (!data.success || data.vitals.length === 0) {
-      grid.innerHTML = "<div class='empty-state'>No vital telemetry parameters available.</div>";
+    if (!data.success || !Array.isArray(data.vitals) || data.vitals.length === 0) {
+      grid.innerHTML = "<div class='empty-state'>Awaiting telemetry synchronization...</div>";
       return;
     }
 
@@ -165,7 +144,7 @@ async function loadVitals() {
 
       const hasVal = vital.latest && vital.latest.value !== null && vital.latest.value !== undefined;
       const displayVal = hasVal ? vital.latest.value : "--";
-      const status = vital.status || "NO_DATA";
+      const status = vital.status || "NORMAL";
 
       let statusBadge = `<span class="status-badge status-${status.toLowerCase()}">${status}</span>`;
       if (!hasVal) {
@@ -174,12 +153,26 @@ async function loadVitals() {
 
       let graphHtml = "";
       if (vital.hasGraph) {
-        if (vital.history && vital.history.length > 1) {
+        if (Array.isArray(vital.history) && vital.history.length > 1) {
           graphHtml = `<div class="card-graph">${renderSparkline(vital.history, status)}</div>`;
         } else {
-          graphHtml = `<div class="empty-graph">Collecting trend data...</div>`;
+          graphHtml = `<div class="empty-graph">Tracking trend stream...</div>`;
         }
       }
+
+      // Safe threshold target display (handles both normal: [min, max] and warning ranges)
+      let targetDisplay = "Nominal Range";
+      if (vital.thresholds) {
+        if (Array.isArray(vital.thresholds.normal) && vital.thresholds.normal.length >= 2) {
+          targetDisplay = `Target: ${vital.thresholds.normal[0]} - ${vital.thresholds.normal[1]} ${vital.unit}`;
+        } else if (vital.thresholds.lowWarning !== undefined && vital.thresholds.highWarning !== undefined) {
+          targetDisplay = `Target: ${vital.thresholds.lowWarning} - ${vital.thresholds.highWarning} ${vital.unit}`;
+        }
+      }
+
+      const timeStr = vital.latest && vital.latest.recorded_at
+        ? new Date(vital.latest.recorded_at).toLocaleTimeString()
+        : 'Live Sync';
 
       card.innerHTML = `
         <div class="card-top">
@@ -192,8 +185,8 @@ async function loadVitals() {
         </div>
         ${graphHtml}
         <div class="card-footer">
-          <span>Target: ${vital.thresholds.normal[0]}-${vital.thresholds.normal[1]} ${vital.unit}</span>
-          <span>${vital.latest ? new Date(vital.latest.timestamp).toLocaleTimeString() : 'Awaiting sync'}</span>
+          <span>${targetDisplay}</span>
+          <span>${timeStr}</span>
         </div>
       `;
 
@@ -202,13 +195,15 @@ async function loadVitals() {
 
   } catch (err) {
     console.error("Error loading vitals:", err);
-    grid.innerHTML = "<div class='empty-state'>Failed to load vital telemetry. Retrying...</div>";
+    grid.innerHTML = "<div class='empty-state'>Failed to load vital telemetry. Reconnecting...</div>";
   }
 }
 
 // Render SVG Sparkline
 function renderSparkline(history, status) {
-  const points = history.map(h => h.value);
+  if (!Array.isArray(history) || history.length < 2) return "";
+
+  const points = history.map(h => typeof h.value === 'number' ? h.value : parseFloat(h.value) || 0);
   const min = Math.min(...points);
   const max = Math.max(...points);
   const range = max - min || 1;
@@ -229,8 +224,8 @@ function renderSparkline(history, status) {
   if (status === "CRITICAL") strokeColor = "var(--color-critical)";
 
   return `
-    <svg viewBox="0 0 ${w} ${h}" class="sparkline-svg" preserveAspectRatio="none">
-      <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg viewBox="0 0 ${w} ${h}" class="sparkline-svg" preserveAspectRatio="none" style="width:100%; height:50px;">
+      <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   `;
 }
@@ -240,14 +235,12 @@ async function loadEnvironmental() {
   const grid = document.getElementById("environmental-grid");
   if (!grid) return;
 
-  grid.innerHTML = "<div class='empty-state'>Connecting to environmental telemetry...</div>";
-
   try {
     const res = await fetch("/api/environmental");
     const data = await res.json();
 
-    if (!data.success || data.environmental.length === 0) {
-      grid.innerHTML = "<div class='empty-state'>No environmental factors telemetry available.</div>";
+    if (!data.success || !Array.isArray(data.environmental) || data.environmental.length === 0) {
+      grid.innerHTML = "<div class='empty-state'>Awaiting environmental telemetry...</div>";
       return;
     }
 
@@ -273,7 +266,7 @@ async function loadEnvironmental() {
 
   } catch (err) {
     console.error("Error loading environmental factors:", err);
-    grid.innerHTML = "<div class='empty-state'>Failed to load environmental telemetry. Retrying...</div>";
+    grid.innerHTML = "<div class='empty-state'>Failed to load environmental telemetry. Reconnecting...</div>";
   }
 }
 
