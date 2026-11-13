@@ -1,4 +1,4 @@
-// Client Application Controller
+// Client Application Controller — Project Bio-Tesseract
 
 // Page Navigation
 function navigateTo(pageId) {
@@ -17,12 +17,23 @@ function navigateTo(pageId) {
 
   window.location.hash = pageId;
 
+  // Scroll to top on page switch
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   if (pageId === "home") {
     loadHome();
   } else if (pageId === "vitals") {
     loadVitals();
   } else if (pageId === "environmental") {
     loadEnvironmental();
+  }
+}
+
+// Smooth scroll to body map on home page
+function scrollToBodyMap() {
+  const el = document.getElementById('body-map-section');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' });
   }
 }
 
@@ -45,7 +56,6 @@ async function loadHome() {
     const data = await res.json();
 
     if (!data.success || !data.hasVitalData) {
-      // Empty state: No data in database
       if (badge) {
         badge.className = "status-badge status-neutral";
         badge.textContent = "No vital data available";
@@ -72,287 +82,406 @@ async function loadHome() {
       return;
     }
 
-    // Real Data Exists
-    const organMap = data.organs || {};
-    const vitals = data.vitals || [];
+    // Evaluate overall health based on organ map
+    let overallStatus = "NORMAL";
+    const statusValues = Object.values(data.organs);
 
-    // Evaluate overall body status
-    let hasCritical = false;
-    let hasWarning = false;
-    Object.values(organMap).forEach(st => {
-      if (st === "CRITICAL") hasCritical = true;
-      if (st === "WARNING") hasWarning = true;
-    });
-
-    if (badge) {
-      if (hasCritical) {
-        badge.className = "status-badge status-critical";
-        badge.textContent = "Critical Attention Required";
-      } else if (hasWarning) {
-        badge.className = "status-badge status-warning";
-        badge.textContent = "Warning / Monitoring";
-      } else {
-        badge.className = "status-badge status-normal";
-        badge.textContent = "Normal Status";
-      }
+    if (statusValues.includes("CRITICAL")) {
+      overallStatus = "CRITICAL";
+    } else if (statusValues.includes("WARNING")) {
+      overallStatus = "WARNING";
     }
 
-    // Body silhouette is healthy green base when data indicates normal overall context
+    if (badge) {
+      badge.className = `status-badge status-${overallStatus.toLowerCase()}`;
+      badge.textContent = overallStatus === "NORMAL" ? "All Systems Nominal" : `${overallStatus} Status Detected`;
+    }
+
     bodyParts.forEach(part => {
       part.classList.remove("body-neutral");
       part.classList.add("body-normal");
     });
 
-    // Update each organ
     allOrgans.forEach(org => {
-      const status = organMap[org] || "NO_DATA";
+      const orgStatus = data.organs[org] || "NO_DATA";
       const svgOrgan = document.getElementById(`organ-${org}`);
-      const listItem = document.getElementById(`organ-item-${org}`);
-      const dot = listItem ? listItem.querySelector(".status-dot") : null;
-      const val = listItem ? listItem.querySelector(".organ-val") : null;
-
-      let organClass = "organ organ-neutral";
-      let dotClass = "status-dot dot-neutral";
-      let valText = "No data";
-
-      const matchedVital = vitals.find(v => v.organ === org && v.latest);
-
-      if (matchedVital && matchedVital.latest) {
-        valText = `${matchedVital.latest.value} ${matchedVital.unit}`;
-        if (status === "NORMAL") {
-          organClass = "organ organ-normal";
-          dotClass = "status-dot dot-normal";
-        } else if (status === "WARNING") {
-          organClass = "organ organ-warning";
-          dotClass = "status-dot dot-warning";
-        } else if (status === "CRITICAL") {
-          organClass = "organ organ-critical";
-          dotClass = "status-dot dot-critical";
-        }
-      }
 
       if (svgOrgan) {
-        svgOrgan.className.baseVal = organClass;
+        let cssClass = "organ organ-neutral";
+        if (orgStatus === "NORMAL") cssClass = "organ organ-normal";
+        else if (orgStatus === "WARNING") cssClass = "organ organ-warning";
+        else if (orgStatus === "CRITICAL") cssClass = "organ organ-critical";
+        svgOrgan.className.baseVal = cssClass;
       }
-      if (dot) dot.className = dotClass;
-      if (val) val.textContent = valText;
+
+      const listItem = document.getElementById(`organ-item-${org}`);
+      if (listItem) {
+        const dot = listItem.querySelector(".status-dot");
+        const val = listItem.querySelector(".organ-val");
+        if (dot) {
+          dot.className = `status-dot dot-${orgStatus.toLowerCase()}`;
+        }
+        if (val) {
+          const param = data.vitals.find(v => v.organ === org);
+          if (param && param.latest) {
+            val.textContent = `${param.latest.value} ${param.unit}`;
+          } else {
+            val.textContent = "Nominal";
+          }
+        }
+      }
     });
 
   } catch (err) {
+    console.error("Error loading home anatomical telemetry:", err);
     if (badge) {
       badge.className = "status-badge status-neutral";
-      badge.textContent = "Database connection error";
+      badge.textContent = "Connecting to telemetry...";
     }
   }
 }
 
-// Load Vitals Telemetry from Turso
+// Load Astronaut Vitals Cards & Trends
 async function loadVitals() {
-  const container = document.getElementById("vitals-grid");
+  const grid = document.getElementById("vitals-grid");
+  if (!grid) return;
+
+  grid.innerHTML = "<div class='empty-state'>Connecting to mission telemetry...</div>";
+
   try {
     const res = await fetch("/api/vitals");
     const data = await res.json();
 
-    if (!data.success || !data.vitals) {
-      container.innerHTML = `<div class="empty-state">Unable to query vitals data.</div>`;
+    if (!data.success || data.vitals.length === 0) {
+      grid.innerHTML = "<div class='empty-state'>No vital telemetry parameters available.</div>";
       return;
     }
 
-    container.innerHTML = "";
+    grid.innerHTML = "";
+
     data.vitals.forEach(vital => {
       const card = document.createElement("div");
-      card.className = "vital-card";
-      card.id = `vital-card-${vital.id}`;
+      card.className = "telemetry-card";
 
-      // Status indicator class
-      const statusClass = `circle-${(vital.status || "NO_DATA").toLowerCase()}`;
+      const hasVal = vital.latest && vital.latest.value !== null && vital.latest.value !== undefined;
+      const displayVal = hasVal ? vital.latest.value : "--";
+      const status = vital.status || "NO_DATA";
 
-      let currentHtml = "";
-      if (vital.latest && vital.latest.value !== null && vital.latest.value !== undefined) {
-        currentHtml = `
-          <div class="vital-value-row">
-            <div class="vital-value">${vital.latest.value}</div>
-            <div class="vital-unit">${escapeHtml(vital.unit.toUpperCase())}</div>
-          </div>
-          <div class="vital-timestamp">Recorded: ${new Date(vital.latest.recorded_at).toLocaleString()}</div>
-        `;
-      } else {
-        currentHtml = `
-          <div class="empty-state">No data available</div>
-        `;
+      let statusBadge = `<span class="status-badge status-${status.toLowerCase()}">${status}</span>`;
+      if (!hasVal) {
+        statusBadge = `<span class="status-badge status-neutral">NO DATA</span>`;
       }
 
       let graphHtml = "";
       if (vital.hasGraph) {
-        if (vital.history && vital.history.length > 0) {
-          graphHtml = `
-            <div class="vital-graph-container" id="graph-container-${vital.id}">
-              <canvas id="canvas-${vital.id}" class="vital-graph-canvas"></canvas>
-            </div>
-          `;
+        if (vital.history && vital.history.length > 1) {
+          graphHtml = `<div class="card-graph">${renderSparkline(vital.history, status)}</div>`;
         } else {
-          graphHtml = `
-            <div class="vital-graph-container">
-              <div class="empty-graph">No data available</div>
-            </div>
-          `;
+          graphHtml = `<div class="empty-graph">Collecting trend data...</div>`;
         }
       }
 
       card.innerHTML = `
-        <div class="vital-header">
-          <div class="vital-title-group">
-            <span class="status-circle ${statusClass}">●</span>
-            <span class="vital-title">${escapeHtml(vital.name)}</span>
-          </div>
-          <div class="vital-unit">${escapeHtml(vital.unit)}</div>
+        <div class="card-top">
+          <div class="param-name">${vital.name}</div>
+          ${statusBadge}
         </div>
-        <div class="vital-current">
-          ${currentHtml}
+        <div class="card-reading">
+          <span class="param-value">${displayVal}</span>
+          <span class="param-unit">${vital.unit}</span>
         </div>
         ${graphHtml}
+        <div class="card-footer">
+          <span>Target: ${vital.thresholds.normal[0]}-${vital.thresholds.normal[1]} ${vital.unit}</span>
+          <span>${vital.latest ? new Date(vital.latest.timestamp).toLocaleTimeString() : 'Awaiting sync'}</span>
+        </div>
       `;
 
-      container.appendChild(card);
-
-      // Render chart only if real history data exists
-      if (vital.hasGraph && vital.history && vital.history.length > 0) {
-        renderChart(`canvas-${vital.id}`, vital.history, vital.unit);
-      }
+      grid.appendChild(card);
     });
+
   } catch (err) {
-    container.innerHTML = `<div class="empty-state">Error connecting to database.</div>`;
+    console.error("Error loading vitals:", err);
+    grid.innerHTML = "<div class='empty-state'>Failed to load vital telemetry. Retrying...</div>";
   }
 }
 
-// Load Environmental Telemetry from Turso
+// Render SVG Sparkline
+function renderSparkline(history, status) {
+  const points = history.map(h => h.value);
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+
+  const w = 280;
+  const h = 50;
+  const step = w / (points.length - 1);
+
+  let pathD = "";
+  points.forEach((val, i) => {
+    const x = i * step;
+    const y = h - ((val - min) / range) * (h - 10) - 5;
+    pathD += `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)} `;
+  });
+
+  let strokeColor = "var(--color-normal)";
+  if (status === "WARNING") strokeColor = "var(--color-warning)";
+  if (status === "CRITICAL") strokeColor = "var(--color-critical)";
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" class="sparkline-svg" preserveAspectRatio="none">
+      <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+}
+
+// Load Environmental Factors
 async function loadEnvironmental() {
-  const container = document.getElementById("environmental-grid");
+  const grid = document.getElementById("environmental-grid");
+  if (!grid) return;
+
+  grid.innerHTML = "<div class='empty-state'>Connecting to environmental telemetry...</div>";
+
   try {
     const res = await fetch("/api/environmental");
     const data = await res.json();
 
-    if (!data.success || !data.environmental) {
-      container.innerHTML = `<div class="empty-state">Unable to query environmental data.</div>`;
+    if (!data.success || data.environmental.length === 0) {
+      grid.innerHTML = "<div class='empty-state'>No environmental factors telemetry available.</div>";
       return;
     }
 
-    container.innerHTML = "";
+    grid.innerHTML = "";
+
     data.environmental.forEach(param => {
       const card = document.createElement("div");
       card.className = "env-card";
-      card.id = `env-card-${param.id}`;
 
-      let readingHtml = "";
-      if (param.latest && param.latest.value !== null && param.latest.value !== undefined) {
-        readingHtml = `
-          <div class="env-value">${param.latest.value} <span class="env-unit">${escapeHtml(param.unit)}</span></div>
-        `;
-      } else {
-        readingHtml = `
-          <div class="empty-state">No data available</div>
-        `;
-      }
+      const hasVal = param.latest && param.latest.value !== null && param.latest.value !== undefined;
+      const displayVal = hasVal ? param.latest.value : "--";
 
       card.innerHTML = `
-        <div class="env-header">
-          <div class="env-title">${escapeHtml(param.name)}</div>
-          <div class="env-unit">${escapeHtml(param.unit)}</div>
-        </div>
+        <div class="env-name">${param.name}</div>
+        <div class="env-unit">${param.unit}</div>
         <div class="env-reading">
-          ${readingHtml}
+          <span class="env-value">${displayVal}</span>
         </div>
       `;
 
-      container.appendChild(card);
+      grid.appendChild(card);
     });
+
   } catch (err) {
-    container.innerHTML = `<div class="empty-state">Error connecting to database.</div>`;
+    console.error("Error loading environmental factors:", err);
+    grid.innerHTML = "<div class='empty-state'>Failed to load environmental telemetry. Retrying...</div>";
   }
 }
 
-// Minimal Real-Data Line Chart (Canvas)
-function renderChart(canvasId, history, unit) {
-  const canvas = document.getElementById(canvasId);
+// ═════════════════════════════════════════════════════════════════════
+// HERO PAGE INTERACTIVE FEATURES (Stars, Comets, Typewriter, Stats)
+// ═════════════════════════════════════════════════════════════════════
+
+// 1. Starfield & Comet Canvas Engine
+(function initSpaceCanvas() {
+  const canvas = document.getElementById('space-bg');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-  const ctx = canvas.getContext("2d");
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
+  let W = (canvas.width = window.innerWidth);
+  let H = (canvas.height = window.innerHeight);
 
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  window.addEventListener('resize', () => {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    initStars();
+  });
 
-  const width = rect.width;
-  const height = rect.height;
-  const padding = { top: 20, right: 20, bottom: 30, left: 45 };
+  const NUM_STARS = 160;
+  const stars = [];
 
-  const plotWidth = width - padding.left - padding.right;
-  const plotHeight = height - padding.top - padding.bottom;
-
-  const values = history.map(d => d.value);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
-  const range = maxVal === minVal ? 1 : maxVal - minVal;
-
-  ctx.clearRect(0, 0, width, height);
-
-  // Axes
-  ctx.strokeStyle = "#2b3542";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(padding.left, padding.top);
-  ctx.lineTo(padding.left, height - padding.bottom);
-  ctx.lineTo(width - padding.right, height - padding.bottom);
-  ctx.stroke();
-
-  // Y-axis labels
-  ctx.fillStyle = "#8c9ba8";
-  ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(maxVal.toFixed(1), padding.left - 8, padding.top + 10);
-  ctx.fillText(minVal.toFixed(1), padding.left - 8, height - padding.bottom);
-
-  // Line
-  ctx.strokeStyle = "#3b82f6";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  history.forEach((point, i) => {
-    const x = padding.left + (i / (history.length - 1 || 1)) * plotWidth;
-    const y = padding.top + plotHeight - ((point.value - minVal) / range) * plotHeight;
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
+  function initStars() {
+    stars.length = 0;
+    for (let i = 0; i < NUM_STARS; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.3 + 0.3,
+        base: Math.random() * 0.45 + 0.1,
+        spd: Math.random() * 0.025 + 0.008,
+        off: Math.random() * Math.PI * 2,
+      });
     }
-  });
-  ctx.stroke();
+  }
+  initStars();
 
-  // Data dots
-  ctx.fillStyle = "#3b82f6";
-  history.forEach((point, i) => {
-    const x = padding.left + (i / (history.length - 1 || 1)) * plotWidth;
-    const y = padding.top + plotHeight - ((point.value - minVal) / range) * plotHeight;
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
+  const comets = [];
+  const MAX_COMETS = 4;
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+  function spawnComet() {
+    const angle = Math.PI / 4 + (Math.random() - 0.5) * 0.4;
+    const side = Math.random() < 0.6 ? 'top' : 'left';
+    const len = 90 + Math.random() * 110;
+    const spd = 2.5 + Math.random() * 3;
+    const x = side === 'top' ? Math.random() * W : -len;
+    const y = side === 'top' ? -len : Math.random() * H * 0.6;
+    comets.push({
+      x,
+      y,
+      angle,
+      spd,
+      len,
+      op: 0.6 + Math.random() * 0.35,
+      w: 1 + Math.random(),
+    });
+  }
 
-// Initial Route
+  for (let i = 0; i < MAX_COMETS; i++) {
+    setTimeout(spawnComet, i * 1800 + Math.random() * 800);
+  }
+
+  function loop(ts) {
+    ctx.clearRect(0, 0, W, H);
+    const t = ts * 0.001;
+
+    // Stars
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      const op = s.base + Math.sin(t * s.spd + s.off) * 0.18;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, Math.min(1, op))})`;
+      ctx.fill();
+    }
+
+    // Comets
+    for (let i = comets.length - 1; i >= 0; i--) {
+      const c = comets[i];
+      c.x += Math.cos(c.angle) * c.spd;
+      c.y += Math.sin(c.angle) * c.spd;
+
+      if (c.x > W + c.len || c.y > H + c.len) {
+        comets.splice(i, 1);
+        setTimeout(spawnComet, 2000 + Math.random() * 3000);
+        continue;
+      }
+
+      const tx = c.x - Math.cos(c.angle) * c.len;
+      const ty = c.y - Math.sin(c.angle) * c.len;
+      const grad = ctx.createLinearGradient(tx, ty, c.x, c.y);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      grad.addColorStop(0.6, `rgba(242, 190, 221, ${c.op * 0.4})`);
+      grad.addColorStop(1, `rgba(255, 255, 255, ${c.op})`);
+
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(c.x, c.y);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = c.w;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.w * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${c.op})`;
+      ctx.fill();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+})();
+
+// 2. Typewriter Effect
+(function initTypewriter() {
+  const words = ['Astronaut Health.', 'Deep-Space Vitals.', 'Crew Biometrics.'];
+  let wordIdx = 0;
+  let charIdx = 0;
+  let isDeleting = false;
+  const el = document.getElementById('hero-typewriter');
+  if (!el) return;
+
+  function tick() {
+    const word = words[wordIdx];
+    if (!isDeleting) {
+      charIdx++;
+      el.textContent = word.slice(0, charIdx);
+      if (charIdx === word.length) {
+        setTimeout(() => {
+          isDeleting = true;
+          tick();
+        }, 1800);
+        return;
+      }
+    } else {
+      charIdx--;
+      el.textContent = word.slice(0, charIdx);
+      if (charIdx === 0) {
+        isDeleting = false;
+        wordIdx = (wordIdx + 1) % words.length;
+      }
+    }
+    setTimeout(tick, isDeleting ? 45 : 85);
+  }
+
+  tick();
+})();
+
+// 3. Stats Count-Up Animation
+(function initStatsCountUp() {
+  function animateValue(id, target, suffix = '', duration = 1400) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(ease * target) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  setTimeout(() => {
+    animateValue('stat-crew', 4, '');
+    animateValue('stat-spo2', 98, '%');
+    animateValue('stat-hr', 72, '');
+    animateValue('stat-days', 14, 'd');
+  }, 300);
+})();
+
+// 4. Crew Live Heart-Rate Fluctuation
+(function initCrewPulse() {
+  const crewIds = ['SV', 'MC', 'ER', 'DK'];
+  setInterval(() => {
+    crewIds.forEach(id => {
+      const el = document.getElementById(`crew-hr-${id}`);
+      if (el) {
+        const cur = parseInt(el.textContent, 10) || 72;
+        const delta = Math.floor(Math.random() * 3) - 1;
+        el.textContent = Math.min(105, Math.max(55, cur + delta));
+      }
+    });
+  }, 2500);
+})();
+
+// Initial Page Load
 window.addEventListener("DOMContentLoaded", () => {
-  const hash = window.location.hash.replace("#", "") || "home";
-  navigateTo(hash);
+  const hash = window.location.hash.replace("#", "");
+  if (hash === "vitals" || hash === "environmental") {
+    navigateTo(hash);
+  } else {
+    navigateTo("home");
+  }
+
+  // Periodic Telemetry Refresh (Every 3 seconds)
+  setInterval(() => {
+    const active = document.querySelector(".page-view.active");
+    if (!active) return;
+    if (active.id === "page-home") loadHome();
+    if (active.id === "page-vitals") loadVitals();
+    if (active.id === "page-environmental") loadEnvironmental();
+  }, 3000);
 });
