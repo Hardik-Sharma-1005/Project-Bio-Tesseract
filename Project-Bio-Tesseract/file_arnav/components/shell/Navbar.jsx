@@ -6,6 +6,7 @@ export default function Navbar({
   activeAstronaut,
   onSelectAstronaut,
   isAlarmActive,
+  missionStatus = 'CAUTION',
   onToggleAlarm,
   onMenuToggle
 }) {
@@ -110,13 +111,13 @@ export default function Navbar({
         <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.08)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="status-dot nominal" />
+          <span className={`status-dot ${missionStatus === 'CRITICAL' ? 'critical' : missionStatus === 'CAUTION' ? 'warning' : 'nominal'}`} />
           <div>
-            <div className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--hud-emerald)' }}>
-              DSN LOCKED
+            <div className="font-mono" style={{ fontSize: '0.8rem', color: missionStatus === 'CRITICAL' ? 'var(--hud-crimson)' : missionStatus === 'CAUTION' ? 'var(--hud-amber)' : 'var(--hud-emerald)' }}>
+              MISSION {missionStatus}
             </div>
             <div className="font-ui" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-              27,580 km/h (LEO)
+              DSN LINK LOCKED
             </div>
           </div>
         </div>

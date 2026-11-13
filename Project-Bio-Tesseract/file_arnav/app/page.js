@@ -40,12 +40,19 @@ export default function Home() {
   const [crew, setCrew] = useState(INITIAL_CREW);
   const [activeAstronautId, setActiveAstronautId] = useState('AST-01');
   const [activeTab, setActiveTab] = useState('overview');
-  const [isAlarmActive, setIsAlarmActive] = useState(false);
+  const [alarmAstronautId, setAlarmAstronautId] = useState(null);
+  const [alarmAlertId, setAlarmAlertId] = useState(null);
   const [alerts, setAlerts] = useState(INITIAL_ALERTS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAlarmActive = alarmAstronautId !== null;
 
   // Derived: active astronaut object
   const activeAstronaut = crew.find(c => c.id === activeAstronautId) || crew[0];
+  const missionStatus = alarmAstronautId || alerts.some(alert => alert.severity === 'CRITICAL' && !alert.resolved)
+    ? 'CRITICAL'
+    : alerts.some(alert => alert.severity === 'CAUTION' && !alert.resolved) || crew.some(member => member.status === 'Warning')
+      ? 'CAUTION'
+      : 'NOMINAL';
 
   // ── Telemetry simulation — 2500 ms drift ───────────────────────────
   useEffect(() => {
@@ -64,17 +71,22 @@ export default function Home() {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      const telemetryDrift = new Map(INITIAL_CREW.map(({ id }) => [id, {
+        hrDelta: Math.floor(Math.random() * 3) - 1,
+        spo2Delta: Math.random() * 0.2 - 0.1
+      }]));
+
       setCrew(prevCrew =>
         prevCrew.map(ast => {
           // If alarm is active on this specific astronaut, preserve alarm values
-          if (isAlarmActive && ast.id === activeAstronautId) {
+          if (ast.id === alarmAstronautId) {
             return ast;
           }
 
           // Slight natural biological variance
-          const hrDelta = Math.floor(Math.random() * 3) - 1;
+          const { hrDelta, spo2Delta } = telemetryDrift.get(ast.id);
           const newHr = Math.min(105, Math.max(55, ast.hr + hrDelta));
-          const newSpo2 = +(Math.min(99.8, Math.max(97.0, ast.spo2 + (Math.random() * 0.2 - 0.1)))).toFixed(1);
+          const newSpo2 = +(Math.min(99.8, Math.max(97.0, ast.spo2 + spo2Delta))).toFixed(1);
 
           return {
             ...ast,
@@ -86,45 +98,53 @@ export default function Home() {
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [isAlarmActive, activeAstronautId]);
+  }, [alarmAstronautId]);
 
   // ── Alarm toggle handler ───────────────────────────────────────────
   const handleToggleAlarm = () => {
-    const nextAlarm = !isAlarmActive;
-    setIsAlarmActive(nextAlarm);
-
-    if (nextAlarm) {
+    if (alarmAstronautId === null) {
+      const affectedAstronautId = activeAstronautId;
+      const newAlertId = `ALT-${Date.now()}`;
+      setAlarmAstronautId(affectedAstronautId);
+      setAlarmAlertId(newAlertId);
       // Add critical alert to the top of the feed
       setAlerts(prev => [
         {
-          id: `ALT-${Date.now()}`,
+          id: newAlertId,
           severity: 'CRITICAL',
           title: 'SIMULATED TACHYCARDIA & METABOLIC ELEVATION',
           subsystem: 'Cardio-Bio',
           time: new Date().toTimeString().slice(0, 8),
-          acknowledged: false
+          acknowledged: false,
+          resolved: false
         },
         ...prev
       ]);
       // Elevate active astronaut vitals
       setCrew(prev =>
         prev.map(a =>
-          a.id === activeAstronautId
+          a.id === affectedAstronautId
             ? { ...a, hr: 125, stress: 78, status: 'Warning' }
             : a
         )
       );
     } else {
+      const affectedAstronautId = alarmAstronautId;
       // Restore from INITIAL_CREW baseline (not whatever the drift landed on)
       setCrew(prev =>
         prev.map(a => {
-          if (a.id === activeAstronautId) {
+          if (a.id === affectedAstronautId) {
             const baseline = INITIAL_CREW.find(c => c.id === a.id);
             return { ...a, hr: baseline.hr, stress: baseline.stress, status: 'Nominal' };
           }
           return a;
         })
       );
+      if (alarmAlertId) {
+        setAlerts(prev => prev.map(alert => alert.id === alarmAlertId ? { ...alert, resolved: true } : alert));
+      }
+      setAlarmAstronautId(null);
+      setAlarmAlertId(null);
     }
   };
 
@@ -150,6 +170,7 @@ export default function Home() {
         activeAstronaut={activeAstronaut}
         onSelectAstronaut={setActiveAstronautId}
         isAlarmActive={isAlarmActive}
+        missionStatus={missionStatus}
         onToggleAlarm={handleToggleAlarm}
         onMenuToggle={handleMenuToggle}
       />
@@ -177,6 +198,7 @@ export default function Home() {
               crew={crew}
               activeAstronaut={activeAstronaut}
               alerts={alerts}
+              missionStatus={missionStatus}
               onAcknowledge={handleAcknowledgeAlert}
               onSelectAstronaut={setActiveAstronautId}
               isAlarmActive={isAlarmActive}

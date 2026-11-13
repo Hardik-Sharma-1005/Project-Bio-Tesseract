@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export default function MedicalSection({ activeAstronaut, crew = [], onSelectAstronaut }) {
+  const scanTimers = useRef([]);
   const [activeProtocol, setActiveProtocol] = useState(null);
   const [simulatingDiagnosis, setSimulatingDiagnosis] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -11,10 +12,10 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
       id: 'SCAN-101',
       time: '14:20:10',
       subject: 'Cmdr. Sarah Vance',
-      status: 'STABLE ADAPTATION',
+      status: 'SIMULATED RESULT',
       hr: 72,
       stress: 18,
-      notes: 'All autonomic nervous system markers indicate optimal physiological adaptation to microgravity.'
+      notes: 'Illustrative scan history entry. No clinical assessment was performed.'
     }
   ]);
 
@@ -23,31 +24,41 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
   const spo2 = activeAstronaut?.spo2 || 98.4;
   const name = activeAstronaut?.name || 'Cmdr. Sarah Vance';
 
+  useEffect(() => () => {
+    scanTimers.current.forEach(clearTimeout);
+    scanTimers.current = [];
+  }, []);
+
   const runDiagnosticScan = () => {
     if (simulatingDiagnosis) return;
     setSimulatingDiagnosis(true);
     setScanProgress(20);
 
-    setTimeout(() => setScanProgress(60), 400);
-    setTimeout(() => setScanProgress(90), 900);
-    setTimeout(() => {
-      setScanProgress(100);
-      setSimulatingDiagnosis(false);
-      setScanHistory(prev => [
-        {
-          id: `SCAN-${Date.now().toString().slice(-3)}`,
-          time: new Date().toTimeString().slice(0, 8),
-          subject: name,
-          status: stress > 50 ? 'ELEVATED METABOLIC LOAD' : 'STABLE ADAPTATION',
-          hr,
-          stress,
-          notes: stress > 50
-            ? 'Tachycardia and elevated sympathetic tone detected. Recommend hydration protocol and metabolic monitoring.'
-            : 'Cardiac output, blood oxygenation, and hemodynamic stability remain within acceptable EVA mission thresholds.'
-        },
-        ...prev.slice(0, 4)
-      ]);
-    }, 1400);
+    scanTimers.current = [
+      setTimeout(() => setScanProgress(60), 400),
+      setTimeout(() => setScanProgress(90), 900),
+      setTimeout(() => {
+        const scanId = `SCAN-${Date.now().toString().slice(-3)}`;
+        const scanTime = new Date().toTimeString().slice(0, 8);
+        setScanProgress(100);
+        setSimulatingDiagnosis(false);
+        setScanHistory(prev => [
+          {
+            id: scanId,
+            time: scanTime,
+            subject: name,
+            status: stress > 50 ? 'ELEVATED DEMO SCENARIO' : 'SIMULATED BASELINE',
+            hr,
+            stress,
+            notes: stress > 50
+              ? 'In this simulated scenario, the demonstration heart-rate and stress inputs are elevated. Suggested action: review the hydration protocol.'
+              : 'This simulation presents baseline demonstration inputs. No clinical threshold or diagnosis is being evaluated.'
+          },
+          ...prev.slice(0, 4)
+        ]);
+        scanTimers.current = [];
+      }, 1400)
+    ];
   };
 
   return (
@@ -63,7 +74,7 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
             <span className="cyber-badge cyber-badge-cyan">NEURAL ASSISTANT</span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-            Simulated clinical decision support evaluating physiological adaptation, decompression risks, and spaceflight medical countermeasures.
+            Simulated advisor workflow using illustrative inputs. It does not perform clinical risk assessment or diagnosis.
           </p>
         </div>
       </div>
@@ -83,6 +94,8 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
               return (
                 <button
                   key={member.id}
+                  type="button"
+                  aria-pressed={isSelected}
                   onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
                   className={`hud-btn ${isSelected ? 'hud-btn-primary' : ''}`}
                   style={{ padding: '5px 12px', fontSize: '0.78rem' }}
@@ -159,7 +172,7 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
                 ) : stress > 50 ? (
                   `Cardiovascular frequency is elevated at ${hr} BPM with sympathetic stress response (+${stress}%). Hemodynamic stability remains intact but metabolic load is elevated. Recommend initiating the hydration protocol.`
                 ) : (
-                  `All autonomic nervous system markers indicate optimal physiological adaptation to microgravity. Cardiac output and hemodynamic stability remain within acceptable EVA mission thresholds.`
+                  `This simulation presents baseline demonstration inputs for ${name}. No clinical thresholds or diagnosis are being evaluated.`
                 )}
               </p>
             </div>
@@ -167,19 +180,19 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
             {/* 3 Key Risk Indicators */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }} className="med-risk-row">
               <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DECOMPRESSION SICKNESS</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DCS SCENARIO INDEX · DEMO</div>
                 <div className="font-orbitron" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--hud-emerald)', margin: '4px 0' }}>
                   0.02%
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Low Risk • Pre-breathe nominal</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fixed illustrative value • not a risk assessment</div>
               </div>
 
               <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ACUTE HYPOXIA RISK</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>HYPOXIA SCENARIO INDEX · DEMO</div>
                 <div className="font-orbitron" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--hud-emerald)', margin: '4px 0' }}>
                   0.00%
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Nil Risk • SpO₂ {spo2}%</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fixed illustrative value • simulated SpO₂ {spo2}%</div>
               </div>
 
               <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
@@ -188,7 +201,7 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
                   {stress}%
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {stress > 50 ? 'Elevated Fatigue' : 'Nominal Workload'}
+                  {stress > 50 ? 'Elevated demo input' : 'Baseline demo input'}
                 </div>
               </div>
             </div>
@@ -249,7 +262,7 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
               }}>
                 <span className="status-dot nominal" />
                 <span>
-                  ✓ Simulated protocol <strong>{activeProtocol.toUpperCase()}</strong> command transmitted to EMU-X Life Support Controller.
+                  ✓ Simulated protocol <strong>{activeProtocol.toUpperCase()}</strong> selected. No physical controller or hardware command was executed.
                 </span>
               </div>
             )}

@@ -8,6 +8,7 @@ export default function OverviewSection({
   alerts = [],
   onAcknowledge,
   onSelectAstronaut,
+  missionStatus = 'CAUTION',
   isAlarmActive,
   onToggleAlarm,
   onNavigate
@@ -33,7 +34,8 @@ export default function OverviewSection({
 
     let currentX = 0;
     const points = new Array(width).fill(height / 2);
-    let animationId;
+    let animationId = null;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const startTime = performance.now();
 
     const getEcgSample = (t) => {
@@ -55,15 +57,18 @@ export default function OverviewSection({
       return sample + (Math.random() - 0.5) * 1.5;
     };
 
-    const render = () => {
-      const now = performance.now();
-      const elapsed = (now - startTime) / 1000;
-      const rawEcg = getEcgSample(elapsed);
-      const yVal = height / 2 - rawEcg;
-
-      for (let i = 0; i < 3; i++) {
-        points[currentX] = yVal;
-        currentX = (currentX + 1) % width;
+    const render = (staticFrame = false) => {
+      if (staticFrame) {
+        const period = 60 / Math.max(40, hr);
+        for (let x = 0; x < width; x++) points[x] = height / 2 - getEcgSample((x / width) * period * 4);
+        currentX = width;
+      } else {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const yVal = height / 2 - getEcgSample(elapsed);
+        for (let i = 0; i < 3; i++) {
+          points[currentX] = yVal;
+          currentX = (currentX + 1) % width;
+        }
       }
 
       ctx.fillStyle = '#080d1a';
@@ -84,8 +89,8 @@ export default function OverviewSection({
       ctx.lineJoin = 'round';
 
       for (let x = 0; x < width; x++) {
-        if (Math.abs(x - currentX) < 10) continue;
-        if (x === 0 || Math.abs(x - currentX) === 10) {
+        if (!staticFrame && Math.abs(x - currentX) < 10) continue;
+        if (x === 0 || (!staticFrame && Math.abs(x - currentX) === 10)) {
           ctx.moveTo(x, points[x]);
         } else {
           ctx.lineTo(x, points[x]);
@@ -93,17 +98,34 @@ export default function OverviewSection({
       }
       ctx.stroke();
 
+      if (staticFrame) return;
+
       // Sweep head dot
       ctx.beginPath();
       ctx.arc(currentX, points[currentX], 3.5, 0, Math.PI * 2);
       ctx.fillStyle = '#38bdf8';
       ctx.fill();
 
-      animationId = requestAnimationFrame(render);
+      if (!document.hidden) animationId = requestAnimationFrame(render);
     };
 
-    animationId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationId);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (animationId !== null) cancelAnimationFrame(animationId);
+        animationId = null;
+      } else if (!reducedMotion && animationId === null) {
+        animationId = requestAnimationFrame(render);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (reducedMotion) render(true);
+    else if (!document.hidden) animationId = requestAnimationFrame(render);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (animationId !== null) cancelAnimationFrame(animationId);
+    };
   }, [hr]);
 
   return (
@@ -118,7 +140,7 @@ export default function OverviewSection({
         gap: '16px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <span className="cyber-badge cyber-badge-cyan">MISSION STATUS: NOMINAL</span>
+          <span className={`cyber-badge ${missionStatus === 'CRITICAL' ? 'cyber-badge-crimson' : missionStatus === 'CAUTION' ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`}>MISSION STATUS: {missionStatus}</span>
           <span style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             ARTEMIS-BIO-VII • STAGE 03/06 (EXTERNAL HULL INSPECTION &amp; TELEMETRY SYNC)
           </span>
@@ -126,9 +148,9 @@ export default function OverviewSection({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className={`status-dot ${isAlarmActive ? 'critical' : 'nominal'}`} />
-            <span className="font-mono" style={{ fontSize: '0.8rem', color: isAlarmActive ? 'var(--hud-crimson)' : 'var(--hud-emerald)' }}>
-              {isAlarmActive ? 'ALERT FLAGGED' : 'ALL SYSTEMS NOMINAL'}
+            <span className={`status-dot ${missionStatus === 'CRITICAL' ? 'critical' : missionStatus === 'CAUTION' ? 'warning' : 'nominal'}`} />
+            <span className="font-mono" style={{ fontSize: '0.8rem', color: missionStatus === 'CRITICAL' ? 'var(--hud-crimson)' : missionStatus === 'CAUTION' ? 'var(--hud-amber)' : 'var(--hud-emerald)' }}>
+              MISSION {missionStatus}
             </span>
           </div>
 
@@ -162,12 +184,17 @@ export default function OverviewSection({
             const isSelected = member.id === activeAstronaut?.id;
             const isWarning = member.status === 'Warning';
             return (
-              <div
+              <button
+                type="button"
                 key={member.id}
+                aria-pressed={isSelected}
                 onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
                 className="hud-panel"
                 style={{
+                  width: '100%',
                   padding: '18px 20px',
+                  textAlign: 'left',
+                  color: 'inherit',
                   cursor: 'pointer',
                   border: isSelected
                     ? '1px solid var(--hud-cyan)'
@@ -244,7 +271,7 @@ export default function OverviewSection({
                     </div>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -341,7 +368,7 @@ export default function OverviewSection({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              <span>25 mm/s • Normal Sinus Rhythm</span>
+              <span>Procedural waveform • display animation</span>
               <span>Procedural physiological simulation</span>
             </div>
           </div>
@@ -452,8 +479,8 @@ export default function OverviewSection({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {alerts.slice(0, 4).map((alert) => {
-            const isCrit = alert.severity === 'CRITICAL';
-            const isCaut = alert.severity === 'CAUTION';
+            const isCrit = alert.severity === 'CRITICAL' && !alert.resolved;
+            const isCaut = alert.severity === 'CAUTION' && !alert.resolved;
 
             return (
               <div
@@ -471,7 +498,7 @@ export default function OverviewSection({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                   <span className={`cyber-badge ${isCrit ? 'cyber-badge-crimson' : isCaut ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`} style={{ fontSize: '0.65rem' }}>
-                    {alert.severity}
+                    {alert.resolved ? 'RESOLVED' : alert.severity}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

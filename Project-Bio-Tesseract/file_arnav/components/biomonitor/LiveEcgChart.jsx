@@ -10,7 +10,7 @@ export default function LiveEcgChart({
   respRate = 15
 }) {
   const canvasRef = useRef(null);
-  const [leadMode, setLeadMode] = useState('LEAD-II');
+  const [waveformMode, setWaveformMode] = useState('ECG-II');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,8 +22,9 @@ export default function LiveEcgChart({
 
     const points = new Array(width).fill(height / 2);
     let currentX = 0;
-    let animationId;
+    let animationId = null;
     const startTime = performance.now();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const getEcgSample = (t) => {
       const period = 60 / Math.max(40, heartRate);
@@ -31,7 +32,7 @@ export default function LiveEcgChart({
 
       let sample = 0;
 
-      if (leadMode === 'V1-PPG') {
+      if (waveformMode === 'PPG') {
         // Photoplethysmogram arterial pulse wave
         if (normalizedTime < 0.25) {
           const phase = normalizedTime / 0.25;
@@ -51,11 +52,11 @@ export default function LiveEcgChart({
         let pScale = 1.0;
         let tScale = 1.0;
 
-        if (leadMode === 'LEAD-I') {
+        if (waveformMode === 'ECG-I') {
           rScale = 0.82;
           pScale = 0.75;
           tScale = 0.85;
-        } else if (leadMode === 'LEAD-III') {
+        } else if (waveformMode === 'ECG-III') {
           rScale = 0.68;
           pScale = -0.5; // Inverted P in Lead-III
           tScale = 0.6;
@@ -124,16 +125,20 @@ export default function LiveEcgChart({
       }
     };
 
-    const render = () => {
-      const now = performance.now();
-      const elapsed = (now - startTime) / 1000;
-      const rawEcg = getEcgSample(elapsed);
-      const baselineY = height / 2;
-      const yVal = baselineY - rawEcg;
-
-      for (let i = 0; i < 3; i++) {
-        points[currentX] = yVal;
-        currentX = (currentX + 1) % width;
+    const render = (staticFrame = false) => {
+      if (staticFrame) {
+        const period = 60 / Math.max(40, heartRate);
+        for (let x = 0; x < width; x++) {
+          points[x] = height / 2 - getEcgSample((x / width) * period * 4);
+        }
+        currentX = width;
+      } else {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const yVal = height / 2 - getEcgSample(elapsed);
+        for (let i = 0; i < 3; i++) {
+          points[currentX] = yVal;
+          currentX = (currentX + 1) % width;
+        }
       }
 
       ctx.fillStyle = '#070c18';
@@ -143,20 +148,22 @@ export default function LiveEcgChart({
 
       // Trace line
       ctx.beginPath();
-      const traceColor = leadMode === 'V1-PPG' ? '#38bdf8' : '#10b981';
+      const traceColor = waveformMode === 'PPG' ? '#38bdf8' : '#10b981';
       ctx.strokeStyle = traceColor;
       ctx.lineWidth = 2.2;
       ctx.lineJoin = 'round';
 
       for (let x = 0; x < width; x++) {
-        if (Math.abs(x - currentX) < 14) continue;
-        if (x === 0 || Math.abs(x - currentX) === 14) {
+        if (!staticFrame && Math.abs(x - currentX) < 14) continue;
+        if (x === 0 || (!staticFrame && Math.abs(x - currentX) === 14)) {
           ctx.moveTo(x, points[x]);
         } else {
           ctx.lineTo(x, points[x]);
         }
       }
       ctx.stroke();
+
+      if (staticFrame) return;
 
       // Sweep Line
       ctx.beginPath();
@@ -172,12 +179,27 @@ export default function LiveEcgChart({
       ctx.fillStyle = '#38bdf8';
       ctx.fill();
 
-      animationId = requestAnimationFrame(render);
+      if (!document.hidden) animationId = requestAnimationFrame(render);
     };
 
-    animationId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationId);
-  }, [heartRate, leadMode]);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (animationId !== null) cancelAnimationFrame(animationId);
+        animationId = null;
+      } else if (!reducedMotion && animationId === null) {
+        animationId = requestAnimationFrame(render);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (reducedMotion) render(true);
+    else if (!document.hidden) animationId = requestAnimationFrame(render);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (animationId !== null) cancelAnimationFrame(animationId);
+    };
+  }, [heartRate, waveformMode]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -243,10 +265,7 @@ export default function LiveEcgChart({
           gap: '8px'
         }}>
           <span className="cyber-badge cyber-badge-cyan">
-            {leadMode}
-          </span>
-          <span className="cyber-badge cyber-badge-emerald">
-            SINUS RHYTHM
+            {waveformMode === 'PPG' ? 'PPG WAVEFORM' : `ECG LEAD ${waveformMode.slice(-1)}`}
           </span>
         </div>
 
@@ -257,11 +276,11 @@ export default function LiveEcgChart({
           fontSize: '0.72rem',
           color: 'var(--text-muted)'
         }}>
-          SIMULATED PROCEDURAL TELEMETRY • NOT VALIDATED CLINICAL DIAGNOSTIC
+          SIMULATED PROCEDURAL WAVEFORM • NOT FOR CLINICAL USE
         </div>
       </div>
 
-      {/* Lead Selector Controls */}
+      {/* Waveform Mode Controls */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -276,23 +295,29 @@ export default function LiveEcgChart({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-            ECG LEAD:
+            WAVEFORM MODE:
           </span>
-          {['LEAD-I', 'LEAD-II', 'LEAD-III', 'V1-PPG'].map((mode) => (
+          {[
+            { id: 'ECG-I', label: 'ECG Lead I' },
+            { id: 'ECG-II', label: 'ECG Lead II' },
+            { id: 'ECG-III', label: 'ECG Lead III' },
+            { id: 'PPG', label: 'PPG waveform' }
+          ].map((mode) => (
             <button
-              key={mode}
-              onClick={() => setLeadMode(mode)}
-              className={`hud-btn ${leadMode === mode ? 'hud-btn-primary' : ''}`}
+              key={mode.id}
+              type="button"
+              aria-pressed={waveformMode === mode.id}
+              onClick={() => setWaveformMode(mode.id)}
+              className={`hud-btn ${waveformMode === mode.id ? 'hud-btn-primary' : ''}`}
               style={{ padding: '5px 14px', fontSize: '0.8rem' }}
             >
-              {mode}
+              {mode.label}
             </button>
           ))}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-          <span>Sweep: <strong>25 mm/s</strong></span>
-          <span>Gain: <strong>10 mm/mV</strong></span>
+          <span>Procedural display • no acquisition hardware</span>
         </div>
       </div>
 

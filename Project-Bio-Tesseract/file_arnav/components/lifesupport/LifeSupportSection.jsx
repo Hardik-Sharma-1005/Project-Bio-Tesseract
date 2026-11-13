@@ -48,6 +48,8 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
               return (
                 <button
                   key={member.id}
+                  type="button"
+                  aria-pressed={isSelected}
                   onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
                   className={`hud-btn ${isSelected ? 'hud-btn-primary' : ''}`}
                   style={{ padding: '5px 12px', fontSize: '0.78rem' }}

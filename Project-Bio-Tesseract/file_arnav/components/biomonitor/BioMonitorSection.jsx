@@ -23,12 +23,19 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
             <h2 className="font-orbitron" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: 0 }}>
               CARDIOVASCULAR BIO-MONITOR &amp; ECG
             </h2>
-            <span className="cyber-badge cyber-badge-emerald">CONTINUOUS SYNC</span>
+            <span className="cyber-badge cyber-badge-amber">SIMULATED</span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-            Real-time multi-lead electrocardiography, PPG pulse wave analysis, and hemodynamic metrics under microgravity.
+            Procedural ECG-style and PPG waveforms with simulated crew telemetry.
           </p>
         </div>
+      </div>
+
+      <div className="hud-panel" role="note" style={{ padding: '14px 18px', borderColor: 'rgba(245,158,11,.25)', background: 'rgba(245,158,11,.06)' }}>
+        <strong style={{ color: 'var(--hud-amber)' }}>SIMULATION NOTICE</strong>
+        <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
+          Heart rate and SpO₂ drift in the demonstration simulation; blood pressure, respiration and stress are demonstration inputs (stress rises in the anomaly simulation). Waveforms are procedural. ECG intervals, ST deviation, cardiac output and stroke volume below are fixed illustrative values, not measurements or clinical assessments.
+        </span>
       </div>
 
       {/* ── Subject Switcher Strip ── */}
@@ -46,6 +53,8 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
               return (
                 <button
                   key={member.id}
+                  type="button"
+                  aria-pressed={isSelected}
                   onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
                   className={`hud-btn ${isSelected ? 'hud-btn-primary' : ''}`}
                   style={{ padding: '5px 12px', fontSize: '0.78rem' }}
@@ -66,8 +75,8 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
             <h3 className="font-orbitron" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', margin: 0 }}>
               CONTINUOUS CARDIAC WAVEFORM
             </h3>
-            <span className="font-mono" style={{ fontSize: '0.76rem', color: 'var(--hud-cyan)' }}>
-              Sampling: 250 Hz
+            <span className="font-mono" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+              Procedural waveform • Display animation
             </span>
           </div>
 
@@ -86,10 +95,10 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
           <div className="hud-panel" style={{ padding: '22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: 'var(--hud-cyan)', margin: 0 }}>
-                CARDIAC INTERVALS &amp; TIMING
+                ILLUSTRATIVE ECG INTERVALS
               </h4>
-              <span className="cyber-badge cyber-badge-emerald font-mono" style={{ fontSize: '0.65rem' }}>
-                NORMAL
+              <span className="cyber-badge cyber-badge-amber font-mono" style={{ fontSize: '0.65rem' }}>
+                FIXED DEMO VALUES
               </span>
             </div>
 
@@ -97,7 +106,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>QT / QTc Interval</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ventricular depolarization to repolarization</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Illustrative interval example</div>
                 </div>
                 <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
                   392 / 418 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
@@ -107,7 +116,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>PR Interval</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>AV nodal conduction time</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Illustrative conduction interval</div>
                 </div>
                 <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
                   158 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
@@ -117,7 +126,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>QRS Duration</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ventricular depolarization spread</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Illustrative QRS duration</div>
                 </div>
                 <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
                   86 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
@@ -127,9 +136,9 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>ST-Segment Deviation</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ischemic marker threshold</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Illustrative segment value</div>
                 </div>
-                <div className="font-mono" style={{ fontSize: '0.9rem', color: 'var(--hud-emerald)', fontWeight: 600 }}>
+                <div className="font-mono" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                   +0.02 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>mV</span>
                 </div>
               </div>
@@ -144,28 +153,28 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="metric-card">
-                <span className="label">Cardiac Output</span>
+              <span className="label">Cardiac Output · illustrative</span>
                 <span className="value font-orbitron" style={{ color: 'var(--hud-cyan)' }}>
                   5.4 <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>L/min</span>
                 </span>
               </div>
 
               <div className="metric-card">
-                <span className="label">Stroke Volume</span>
+              <span className="label">Stroke Volume · illustrative</span>
                 <span className="value font-orbitron">
                   75 <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mL</span>
                 </span>
               </div>
 
               <div className="metric-card">
-                <span className="label">Mean Arterial (MAP)</span>
+              <span className="label">Mean Arterial · derived demo</span>
                 <span className="value font-orbitron" style={{ color: 'var(--hud-violet)' }}>
                   {map} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mmHg</span>
                 </span>
               </div>
 
               <div className="metric-card">
-                <span className="label">Pulse Pressure</span>
+              <span className="label">Pulse Pressure · derived demo</span>
                 <span className="value font-orbitron" style={{ color: 'var(--hud-amber)' }}>
                   {bpSys - bpDia} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mmHg</span>
                 </span>
@@ -201,7 +210,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
             </div>
 
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: '8px 0 0 0' }}>
-              Cephalad microgravity fluid shift is compensated. Autonomic baroreflex sensitivity within nominal mission bounds.
+                Stress index is an illustrative simulation input. No autonomic or baroreflex assessment is performed.
             </p>
           </div>
         </div>

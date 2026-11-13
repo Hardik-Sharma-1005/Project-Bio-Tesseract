@@ -55,12 +55,17 @@ export default function CrewSection({
             const isWarning = member.status === 'Warning';
 
             return (
-              <div
+              <button
+                type="button"
                 key={member.id}
+                aria-pressed={isSelected}
                 onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
                 className="hud-panel"
                 style={{
+                  width: '100%',
                   padding: '22px 24px',
+                  textAlign: 'left',
+                  color: 'inherit',
                   cursor: 'pointer',
                   border: isSelected
                     ? '1px solid var(--hud-cyan)'
@@ -168,7 +173,7 @@ export default function CrewSection({
                     />
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -195,8 +200,8 @@ export default function CrewSection({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto', maxHeight: '380px' }}>
             {alerts.map((alert) => {
-              const isCrit = alert.severity === 'CRITICAL';
-              const isCaut = alert.severity === 'CAUTION';
+              const isCrit = alert.severity === 'CRITICAL' && !alert.resolved;
+              const isCaut = alert.severity === 'CAUTION' && !alert.resolved;
 
               return (
                 <div
@@ -214,7 +219,7 @@ export default function CrewSection({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                     <span className={`cyber-badge ${isCrit ? 'cyber-badge-crimson' : isCaut ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`} style={{ fontSize: '0.68rem', flexShrink: 0 }}>
-                      {alert.severity}
+                      {alert.resolved ? 'RESOLVED' : alert.severity}
                     </span>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#fff' }}>
