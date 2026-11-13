@@ -55,6 +55,8 @@
           <button class="nav-btn active" data-page="home" id="nav-home">Home</button>
           <button class="nav-btn" data-page="vitals" id="nav-vitals">Astronaut Vitals</button>
           <button class="nav-btn" data-page="environmental" id="nav-environmental">Environmental Factors</button>
+          <button class="nav-btn" data-page="medical" id="nav-medical">Medical Advisor</button>
+          <button class="nav-btn" data-page="alerts" id="nav-alerts">Mission Alerts</button>
           <button class="nav-cta-btn" onclick="navigateTo('vitals')">Open Vitals →</button>
         </nav>
       </div>
@@ -62,7 +64,7 @@
 
     <main class="main-content">
       <!-- ============================================================== -->
-      <!-- PAGE 1: HOME (Hero Page + Telemetry Overview + Body Map)        -->
+      <!-- PAGE 1: HOME (Hero + Features + Crew + Advisor + Alerts + Map) -->
       <!-- ============================================================== -->
       <section id="page-home" class="page-view active">
         <!-- HERO SECTION -->
@@ -94,8 +96,11 @@
                 <button class="btn-secondary" onclick="navigateTo('environmental')">
                   Environmental Factors →
                 </button>
-                <button class="btn-outline" onclick="scrollToBodyMap()">
-                  Physiological Body Map ↓
+                <button class="btn-outline" onclick="scrollToSection('medical-advisor-section')">
+                  AI Medical Advisor ↓
+                </button>
+                <button class="btn-outline" onclick="scrollToSection('mission-alerts-section')">
+                  Mission Alerts ↓
                 </button>
               </div>
             </div>
@@ -180,47 +185,58 @@
           <p class="block-sub">From cardiac rhythm to habitat pressure — every critical telemetry parameter in one view.</p>
 
           <div class="features-grid">
+            <!-- 01: Bio-Monitor -->
             <div class="feature-box" onclick="navigateTo('vitals')">
               <div class="feat-num">01</div>
               <div class="feat-icon">❤️</div>
               <div class="feat-title">Bio-Monitor</div>
               <div class="feat-desc">Live ECG, heart rate, SpO₂ and blood pressure with dynamic physiological thresholds.</div>
             </div>
+
+            <!-- 02: Environmental Factors -->
             <div class="feature-box" onclick="navigateTo('environmental')">
               <div class="feat-num">02</div>
               <div class="feat-icon">🌬️</div>
               <div class="feat-title">Environmental Factors</div>
               <div class="feat-desc">Habitat atmospheric pressure, O₂, CO₂, radiation flux, and water quality telemetry.</div>
             </div>
-            <div class="feature-box" onclick="scrollToBodyMap()">
+
+            <!-- 03: AI Medical Advisor (Replaced Body Map here) -->
+            <div class="feature-box" onclick="scrollToSection('medical-advisor-section')">
               <div class="feat-num">03</div>
               <div class="feat-icon">🧠</div>
-              <div class="feat-title">Anatomical Body Map</div>
-              <div class="feat-desc">Interactive physiological mapping linking real Turso telemetry data to vital human organs.</div>
+              <div class="feat-title">AI Medical Advisor</div>
+              <div class="feat-desc">Neural scan diagnostics, decompression & hypoxia risk matrix, and countermeasure dispatch.</div>
             </div>
-            <div class="feature-box" onclick="navigateTo('vitals')">
+
+            <!-- 04: Mission Alerts (Replaced Telemetry Trends here) -->
+            <div class="feature-box" onclick="scrollToSection('mission-alerts-section')">
               <div class="feat-num">04</div>
-              <div class="feat-icon">📈</div>
-              <div class="feat-title">Telemetry Trends</div>
-              <div class="feat-desc">Historical trend sparklines and time-series telemetry charts for rapid diagnosis.</div>
+              <div class="feat-icon">🚨</div>
+              <div class="feat-title">Mission Alerts</div>
+              <div class="feat-desc">Real-time alert log with tiered severity (Critical, Caution, Nominal) and instant ACK handling.</div>
             </div>
-            <div class="feature-box">
+
+            <!-- 05: Crew Dossiers -->
+            <div class="feature-box" onclick="scrollToSection('crew-roster-section')">
               <div class="feat-num">05</div>
               <div class="feat-icon">👩‍🚀</div>
               <div class="feat-title">Crew Dossiers</div>
               <div class="feat-desc">Deep-space crew members monitored with designated EVA roles and vital baselines.</div>
             </div>
-            <div class="feature-box">
+
+            <!-- 06: Physiological Body Map (Replaced Quantum Uplink here) -->
+            <div class="feature-box" onclick="scrollToSection('body-map-section')">
               <div class="feat-num">06</div>
-              <div class="feat-icon">📡</div>
-              <div class="feat-title">Quantum Uplink</div>
-              <div class="feat-desc">Deep Space Network telemetry sync with sub-second latency and verified schema.</div>
+              <div class="feat-icon">🫀</div>
+              <div class="feat-title">Physiological Body Map</div>
+              <div class="feat-desc">Interactive anatomical mapping linking real telemetry data to vital human organs.</div>
             </div>
           </div>
         </div>
 
         <!-- CREW ROSTER PREVIEW -->
-        <div class="hero-block">
+        <div id="crew-roster-section" class="hero-block">
           <div class="block-eyebrow">On Board</div>
           <h2 class="block-title">Meet the Crew</h2>
           <p class="block-sub">Four specialists. One mission. Telemetry synchronized live.</p>
@@ -280,7 +296,130 @@
           </div>
         </div>
 
-        <!-- HUMAN ANATOMICAL VISUALIZATION SECTION -->
+        <!-- ============================================================ -->
+        <!-- AI MEDICAL ADVISOR SECTION (Integrated from GitHub codebase) -->
+        <!-- ============================================================ -->
+        <div id="medical-advisor-section" class="hero-block">
+          <div class="block-eyebrow">Autonomous Diagnostic Engine</div>
+          <h2 class="block-title">AI Bio-Diagnostic Advisor</h2>
+          <p class="block-sub">Telemetry analysis using pattern recognition across autonomic nervous system markers.</p>
+
+          <div class="advisor-panel">
+            <div class="advisor-header">
+              <div class="advisor-title-box">
+                <span style="font-size: 1.4rem;">🧠</span>
+                <div>
+                  <h3 class="panel-heading">AI BIO-DIAGNOSTIC ADVISOR</h3>
+                  <div class="advisor-sub">NEURAL TELEMETRY ANALYZER · EMU-X BIOSENSORS</div>
+                </div>
+              </div>
+
+              <div class="advisor-controls">
+                <select id="advisor-astronaut-select" class="advisor-select" onchange="runNeuralScan(false)">
+                  <option value="Cmdr. Sarah Vance">Cmdr. Sarah Vance (EVA-1)</option>
+                  <option value="Dr. Marcus Chen">Dr. Marcus Chen (EVA-2)</option>
+                  <option value="Eng. Elena Rostova">Eng. Elena Rostova (Airlock)</option>
+                  <option value="Pilot David Kalu">Pilot David Kalu (Orbiter)</option>
+                </select>
+                <button id="btn-run-scan" class="btn-neural-scan" onclick="runNeuralScan(true)">
+                  ⚡ RUN NEURAL SCAN
+                </button>
+              </div>
+            </div>
+
+            <!-- Diagnostic Card -->
+            <div class="diagnostic-card">
+              <div class="card-header-bar">
+                <span id="advisor-target-name" class="diagnostic-target">BIO-ASSESSMENT FOR CMDR. SARAH VANCE</span>
+                <span id="advisor-status-badge" class="cyber-badge cyber-badge-emerald">STABLE CLASSIFICATION</span>
+              </div>
+
+              <p id="advisor-diagnosis-text" class="diagnostic-text">
+                All autonomic nervous system markers indicate optimal physiological adaptation to microgravity.
+                Cardiac output and hemodynamic stability remain within acceptable EVA mission thresholds.
+              </p>
+
+              <!-- Risk Indexes Matrix -->
+              <div class="risk-matrix">
+                <div class="risk-card">
+                  <div class="risk-label">DECOMPRESSION SICKNESS RISK</div>
+                  <div id="risk-decompression" class="risk-value risk-emerald">
+                    0.02% <span class="risk-sub">[LOW]</span>
+                  </div>
+                </div>
+
+                <div class="risk-card">
+                  <div class="risk-label">ACUTE HYPOXIA RISK</div>
+                  <div id="risk-hypoxia" class="risk-value risk-emerald">
+                    0.00% <span class="risk-sub">[NIL]</span>
+                  </div>
+                </div>
+
+                <div class="risk-card">
+                  <div class="risk-label">COGNITIVE WORKLOAD LOAD</div>
+                  <div id="risk-stress" class="risk-value risk-cyan">
+                    18% <span class="risk-sub">[NORMAL]</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Suggested Actions & Protocols -->
+            <div class="protocols-box">
+              <div class="protocols-label">RECOMMENDED PROTOCOLS & MEDICAL COUNTERMEASURES</div>
+              <div class="protocol-btns">
+                <button class="btn-protocol" onclick="dispatchProtocol('hydration')">
+                  💧 HYDRATION PACK DISPENSE
+                </button>
+                <button class="btn-protocol" onclick="dispatchProtocol('thermal')">
+                  ❄️ LCVG TEMP REGULATE (+0.5°C)
+                </button>
+                <button class="btn-protocol" onclick="dispatchProtocol('oxygen')">
+                  💨 100% PRE-BREATHE FLUSH
+                </button>
+              </div>
+
+              <div id="protocol-feedback" class="protocol-notification" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- MISSION ALERTS SECTION (Integrated from GitHub codebase)     -->
+        <!-- ============================================================ -->
+        <div id="mission-alerts-section" class="hero-block">
+          <div class="block-eyebrow">Real-Time Telemetry Log</div>
+          <h2 class="block-title">Mission Alarm & Alerts Feed</h2>
+          <p class="block-sub">Critical subsystem logs, threshold exceedances, and communication lock confirmations.</p>
+
+          <div class="alerts-panel">
+            <div class="alerts-panel-header">
+              <div class="alerts-title-box">
+                <span style="font-size: 1.4rem;">🚨</span>
+                <div>
+                  <h3 class="panel-heading">MISSION ALARM & TELEMETRY LOG</h3>
+                  <div class="advisor-sub">AEROSPACE SUBSYSTEM EVENT MONITOR</div>
+                </div>
+              </div>
+
+              <div class="alerts-controls">
+                <span id="alerts-count-badge" class="cyber-badge cyber-badge-cyan">4 EVENTS</span>
+                <button class="btn-sim-anomaly" onclick="triggerSimulatedAnomaly()">
+                  ⚠️ TRIGGER SIMULATED ANOMALY
+                </button>
+              </div>
+            </div>
+
+            <!-- Alerts Stream List -->
+            <div id="alerts-feed-list" class="alerts-stream">
+              <!-- Dynamically populated via JavaScript from /api/alerts -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- PHYSIOLOGICAL BODY MAP SECTION                               -->
+        <!-- ============================================================ -->
         <div id="body-map-section" class="body-map-section">
           <div class="block-eyebrow">Physiological Telemetry</div>
           <h2 class="block-title">Anatomical Body Map</h2>
@@ -289,46 +428,46 @@
           <div class="anatomical-panel">
             <div class="panel-header">
               <h3 class="panel-title">Body Sensor Integration</h3>
-              <div id="body-status-badge" class="status-badge status-neutral">Loading vital data...</div>
+              <div id="body-status-badge" class="status-badge status-normal">All Systems Nominal</div>
             </div>
             
             <div class="body-svg-container">
               <svg id="human-body-svg" viewBox="0 0 280 460" xmlns="http://www.w3.org/2000/svg" class="body-svg">
                 <!-- Body Base Silhouette -->
                 <g id="body-silhouette-group">
-                  <path id="body-head" class="body-part body-neutral" d="M140,25 C158,25 170,38 170,60 C170,80 156,92 140,92 C124,92 110,80 110,60 C110,38 122,25 140,25 Z" />
-                  <path id="body-neck" class="body-part body-neutral" d="M132,92 L148,92 L150,105 L130,105 Z" />
-                  <path id="body-torso" class="body-part body-neutral" d="M130,105 L150,105 C178,107 195,116 195,145 L190,240 C190,260 175,275 140,275 C105,275 90,260 90,240 L85,145 C85,116 102,107 130,105 Z" />
-                  <path id="body-arm-left" class="body-part body-neutral" d="M85,115 C72,125 60,150 56,190 L52,260 C50,272 60,275 66,265 L76,195 C78,165 84,145 92,130 Z" />
-                  <path id="body-arm-right" class="body-part body-neutral" d="M195,115 C208,125 220,150 224,190 L228,260 C230,272 220,275 214,265 L204,195 C202,165 196,145 188,130 Z" />
-                  <path id="body-leg-left" class="body-part body-neutral" d="M102,270 L135,270 L130,360 L126,435 C125,445 110,445 108,435 L106,360 L100,275 Z" />
-                  <path id="body-leg-right" class="body-part body-neutral" d="M145,270 L178,270 L180,275 L174,360 L172,435 C170,445 155,445 154,435 L150,360 L145,270 Z" />
+                  <path id="body-head" class="body-part body-normal" d="M140,25 C158,25 170,38 170,60 C170,80 156,92 140,92 C124,92 110,80 110,60 C110,38 122,25 140,25 Z" />
+                  <path id="body-neck" class="body-part body-normal" d="M132,92 L148,92 L150,105 L130,105 Z" />
+                  <path id="body-torso" class="body-part body-normal" d="M130,105 L150,105 C178,107 195,116 195,145 L190,240 C190,260 175,275 140,275 C105,275 90,260 90,240 L85,145 C85,116 102,107 130,105 Z" />
+                  <path id="body-arm-left" class="body-part body-normal" d="M85,115 C72,125 60,150 56,190 L52,260 C50,272 60,275 66,265 L76,195 C78,165 84,145 92,130 Z" />
+                  <path id="body-arm-right" class="body-part body-normal" d="M195,115 C208,125 220,150 224,190 L228,260 C230,272 220,275 214,265 L204,195 C202,165 196,145 188,130 Z" />
+                  <path id="body-leg-left" class="body-part body-normal" d="M102,270 L135,270 L130,360 L126,435 C125,445 110,445 108,435 L106,360 L100,275 Z" />
+                  <path id="body-leg-right" class="body-part body-normal" d="M145,270 L178,270 L180,275 L174,360 L172,435 C170,445 155,445 154,435 L150,360 L145,270 Z" />
                 </g>
 
                 <!-- Major Organs -->
-                <g id="organ-brain" class="organ organ-neutral" data-organ="brain" data-name="Brain">
+                <g id="organ-brain" class="organ organ-normal" data-organ="brain" data-name="Brain">
                   <path d="M125,44 C125,36 132,32 140,32 C148,32 155,36 155,44 C158,48 158,56 154,62 C150,68 146,70 140,70 C134,70 130,68 126,62 C122,56 122,48 125,44 Z" />
                   <path d="M140,34 L140,68" stroke="#000" stroke-width="0.8" stroke-opacity="0.3" fill="none" />
                 </g>
 
-                <g id="organ-lungs" class="organ organ-neutral" data-organ="lungs" data-name="Lungs">
+                <g id="organ-lungs" class="organ organ-normal" data-organ="lungs" data-name="Lungs">
                   <path d="M110,128 C118,124 128,128 132,136 L132,175 C128,185 112,185 106,172 C100,160 102,138 110,128 Z" />
                   <path d="M170,128 C162,124 152,128 148,136 L148,175 C152,185 168,185 174,172 C180,160 178,138 170,128 Z" />
                 </g>
 
-                <g id="organ-heart" class="organ organ-neutral" data-organ="heart" data-name="Heart">
+                <g id="organ-heart" class="organ organ-normal" data-organ="heart" data-name="Heart">
                   <path d="M136,142 C134,136 142,132 146,138 C150,132 158,136 156,142 C154,152 146,160 146,164 C146,160 138,152 136,142 Z" />
                 </g>
 
-                <g id="organ-liver" class="organ organ-neutral" data-organ="liver" data-name="Liver">
+                <g id="organ-liver" class="organ organ-normal" data-organ="liver" data-name="Liver">
                   <path d="M112,188 C124,184 142,186 146,192 C146,204 135,214 116,212 C108,210 106,198 112,188 Z" />
                 </g>
 
-                <g id="organ-stomach" class="organ organ-neutral" data-organ="stomach" data-name="Stomach">
+                <g id="organ-stomach" class="organ organ-normal" data-organ="stomach" data-name="Stomach">
                   <path d="M150,192 C158,188 170,194 172,204 C174,216 160,222 152,220 C146,218 144,202 150,192 Z" />
                 </g>
 
-                <g id="organ-kidneys" class="organ organ-neutral" data-organ="kidneys" data-name="Kidneys">
+                <g id="organ-kidneys" class="organ organ-normal" data-organ="kidneys" data-name="Kidneys">
                   <ellipse cx="120" cy="228" rx="6" ry="10" transform="rotate(-10 120 228)" />
                   <ellipse cx="160" cy="228" rx="6" ry="10" transform="rotate(10 160 228)" />
                 </g>
@@ -338,34 +477,34 @@
             <!-- Organ Status Details List -->
             <div class="organ-status-list">
               <div class="organ-item" id="organ-item-brain">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Brain</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">18.2 Hz</span>
               </div>
               <div class="organ-item" id="organ-item-heart">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Heart</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">72 bpm</span>
               </div>
               <div class="organ-item" id="organ-item-lungs">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Lungs</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">98.6 %</span>
               </div>
               <div class="organ-item" id="organ-item-liver">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Liver</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">37.0 °C</span>
               </div>
               <div class="organ-item" id="organ-item-stomach">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Stomach</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">112 kcal/h</span>
               </div>
               <div class="organ-item" id="organ-item-kidneys">
-                <span class="status-dot dot-neutral"></span>
+                <span class="status-dot dot-normal"></span>
                 <span class="organ-name">Kidneys</span>
-                <span class="organ-val">Loading</span>
+                <span class="organ-val">96.4 %</span>
               </div>
             </div>
 
@@ -415,6 +554,8 @@
             <a href="#" onclick="navigateTo('home'); return false;">Home</a>
             <a href="#" onclick="navigateTo('vitals'); return false;">Vitals</a>
             <a href="#" onclick="navigateTo('environmental'); return false;">Environmental</a>
+            <a href="#" onclick="navigateTo('medical'); return false;">Medical Advisor</a>
+            <a href="#" onclick="navigateTo('alerts'); return false;">Alerts</a>
           </div>
         </footer>
       </section>
@@ -431,7 +572,7 @@
           <p class="page-subtitle">Physiological monitoring and vital sign telemetry with dynamic status indicators.</p>
         </div>
         <div id="vitals-grid" class="vitals-grid">
-          <!-- Injected dynamically via JavaScript from Turso database data -->
+          <!-- Injected dynamically via JavaScript -->
         </div>
       </section>
 
@@ -447,7 +588,39 @@
           <p class="page-subtitle">Atmospheric composition, physical conditions, radiation, and water quality.</p>
         </div>
         <div id="environmental-grid" class="environmental-grid">
-          <!-- Injected dynamically via JavaScript from Turso database data -->
+          <!-- Injected dynamically via JavaScript -->
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- PAGE 4: MEDICAL ADVISOR (Dedicated Tab)                        -->
+      <!-- ============================================================== -->
+      <section id="page-medical" class="page-view">
+        <div class="page-header">
+          <div class="page-header-top">
+            <button class="btn-back" onclick="navigateTo('home')">← Back to Home</button>
+            <h1 class="page-title">AI Bio-Diagnostic Advisor</h1>
+          </div>
+          <p class="page-subtitle">Autonomous medical diagnostic scanner and countermeasure dispatch system.</p>
+        </div>
+        <div id="medical-view-mount" class="page-container">
+          <!-- Injected via JavaScript from Advisor Engine -->
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- PAGE 5: MISSION ALERTS (Dedicated Tab)                         -->
+      <!-- ============================================================== -->
+      <section id="page-alerts" class="page-view">
+        <div class="page-header">
+          <div class="page-header-top">
+            <button class="btn-back" onclick="navigateTo('home')">← Back to Home</button>
+            <h1 class="page-title">Mission Alarm & Telemetry Log</h1>
+          </div>
+          <p class="page-subtitle">Real-time alerts stream across all EMU-X and spacecraft subsystems.</p>
+        </div>
+        <div id="alerts-view-mount" class="page-container">
+          <!-- Injected via JavaScript from Alerts Engine -->
         </div>
       </section>
     </main>

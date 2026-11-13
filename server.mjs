@@ -73,6 +73,14 @@ setInterval(() => {
   });
 }, 2500);
 
+// Mission Alerts State (integrated from GitHub Project-Bio-Tesseract)
+let missionAlerts = [
+  { id: 'ALT-101', severity: 'NOMINAL', title: 'DSN Goldstone X-band lock confirmed', subsystem: 'Comms', time: '14:28:02', acknowledged: true },
+  { id: 'ALT-102', severity: 'NOMINAL', title: 'EMU-X Suit telemetry sync complete', subsystem: 'PLSS', time: '14:27:40', acknowledged: true },
+  { id: 'ALT-103', severity: 'CAUTION', title: 'Solar particle event flux elevation (low risk)', subsystem: 'Radiation', time: '14:25:15', acknowledged: false },
+  { id: 'ALT-104', severity: 'NOMINAL', title: 'Crew telemetry baseline verified', subsystem: 'Bio-Core', time: '14:20:00', acknowledged: true }
+];
+
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json",
@@ -131,8 +139,6 @@ const server = http.createServer(async (req, res) => {
       const organStatusMap = {};
       ORGANS.forEach(o => { organStatusMap[o.id] = "NORMAL"; });
 
-      let hasAnyData = true;
-
       for (const param of VITAL_PARAMETERS) {
         let latest = null;
         let history = [];
@@ -146,7 +152,6 @@ const server = http.createServer(async (req, res) => {
           // Graceful fallback to baseline simulation
         }
 
-        // If Turso has no data yet for this parameter, use the active baseline telemetry
         if (!latest || latest.value === null || latest.value === undefined) {
           const val = baselineReadings[param.id] ?? 70;
           latest = {
@@ -208,6 +213,34 @@ const server = http.createServer(async (req, res) => {
         });
       }
       return sendJson(res, 200, { success: true, environmental: results });
+    }
+
+    // API: GET /api/alerts (Mission Alerts Feed)
+    if (req.method === "GET" && pathname === "/api/alerts") {
+      return sendJson(res, 200, { success: true, alerts: missionAlerts });
+    }
+
+    // API: POST /api/alerts/ack (Acknowledge Alert)
+    if (req.method === "POST" && pathname === "/api/alerts/ack") {
+      const body = await parseBody(req);
+      const { id } = body;
+      missionAlerts = missionAlerts.map(a => a.id === id ? { ...a, acknowledged: true } : a);
+      return sendJson(res, 200, { success: true, alerts: missionAlerts });
+    }
+
+    // API: POST /api/alerts/simulate (Simulate Anomaly)
+    if (req.method === "POST" && pathname === "/api/alerts/simulate") {
+      const newAlert = {
+        id: `ALT-${Date.now()}`,
+        severity: 'CRITICAL',
+        title: 'SIMULATED TACHYCARDIA & METABOLIC ELEVATION',
+        subsystem: 'Cardio-Bio',
+        time: new Date().toTimeString().slice(0, 8),
+        acknowledged: false
+      };
+      missionAlerts.unshift(newAlert);
+      baselineReadings.heart_rate = 125.0;
+      return sendJson(res, 201, { success: true, alert: newAlert, alerts: missionAlerts });
     }
 
     // API: POST /api/telemetry (Ingestion for real data)

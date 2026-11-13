@@ -22,19 +22,36 @@ function navigateTo(pageId) {
 
   if (pageId === "home") {
     loadHome();
+    loadAlerts();
+    runNeuralScan(false);
   } else if (pageId === "vitals") {
     loadVitals();
   } else if (pageId === "environmental") {
     loadEnvironmental();
+  } else if (pageId === "medical") {
+    mountMedicalView();
+  } else if (pageId === "alerts") {
+    mountAlertsView();
   }
 }
 
-// Smooth scroll to body map on home page
-function scrollToBodyMap() {
-  const el = document.getElementById('body-map-section');
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth' });
+// Smooth scroll to section on home page
+function scrollToSection(sectionId) {
+  const currentActive = document.querySelector(".page-view.active");
+  if (!currentActive || currentActive.id !== "page-home") {
+    navigateTo("home");
+    setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  } else {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
   }
+}
+
+function scrollToBodyMap() {
+  scrollToSection("body-map-section");
 }
 
 // Attach Nav Listeners
@@ -45,7 +62,9 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// Load Home Page Anatomical Visualization from Telemetry
+// ═════════════════════════════════════════════════════════════════════
+// 1. HOME & BODY MAP TELEMETRY
+// ═════════════════════════════════════════════════════════════════════
 async function loadHome() {
   const badge = document.getElementById("body-status-badge");
   const bodyParts = document.querySelectorAll(".body-part");
@@ -63,7 +82,6 @@ async function loadHome() {
       return;
     }
 
-    // Evaluate overall health based on organ map
     let overallStatus = "NORMAL";
     const statusValues = Object.values(data.organs || {});
 
@@ -115,14 +133,12 @@ async function loadHome() {
 
   } catch (err) {
     console.error("Error loading home anatomical telemetry:", err);
-    if (badge) {
-      badge.className = "status-badge status-neutral";
-      badge.textContent = "Telemetry stream reconnecting...";
-    }
   }
 }
 
-// Load Astronaut Vitals Cards & Trends
+// ═════════════════════════════════════════════════════════════════════
+// 2. ASTRONAUT VITALS & TREND SPARKLINES
+// ═════════════════════════════════════════════════════════════════════
 async function loadVitals() {
   const grid = document.getElementById("vitals-grid");
   if (!grid) return;
@@ -160,7 +176,6 @@ async function loadVitals() {
         }
       }
 
-      // Safe threshold target display (handles both normal: [min, max] and warning ranges)
       let targetDisplay = "Nominal Range";
       if (vital.thresholds) {
         if (Array.isArray(vital.thresholds.normal) && vital.thresholds.normal.length >= 2) {
@@ -199,7 +214,6 @@ async function loadVitals() {
   }
 }
 
-// Render SVG Sparkline
 function renderSparkline(history, status) {
   if (!Array.isArray(history) || history.length < 2) return "";
 
@@ -230,7 +244,9 @@ function renderSparkline(history, status) {
   `;
 }
 
-// Load Environmental Factors
+// ═════════════════════════════════════════════════════════════════════
+// 3. ENVIRONMENTAL FACTORS
+// ═════════════════════════════════════════════════════════════════════
 async function loadEnvironmental() {
   const grid = document.getElementById("environmental-grid");
   if (!grid) return;
@@ -271,10 +287,205 @@ async function loadEnvironmental() {
 }
 
 // ═════════════════════════════════════════════════════════════════════
-// HERO PAGE INTERACTIVE FEATURES (Stars, Comets, Typewriter, Stats)
+// 4. AI MEDICAL ADVISOR (Diagnostics & Protocols)
+// ═════════════════════════════════════════════════════════════════════
+function runNeuralScan(withAnimation = true) {
+  const select = document.getElementById("advisor-astronaut-select");
+  const targetName = select ? select.value : "Cmdr. Sarah Vance";
+
+  const targetEl = document.getElementById("advisor-target-name");
+  const badgeEl = document.getElementById("advisor-status-badge");
+  const textEl = document.getElementById("advisor-diagnosis-text");
+  const btnScan = document.getElementById("btn-run-scan");
+
+  if (targetEl) targetEl.textContent = `BIO-ASSESSMENT FOR ${targetName.toUpperCase()}`;
+
+  if (withAnimation) {
+    if (btnScan) {
+      btnScan.disabled = true;
+      btnScan.textContent = "🔄 SCANNING SENSORS...";
+    }
+    if (textEl) {
+      textEl.innerHTML = `<span style="color: #38bdf8;">Synthesizing real-time telemetry from PPG, Galvanic Skin Response (GSR), Core Temp, and Suit Atmospheric sensors for ${targetName}...</span>`;
+    }
+    if (badgeEl) {
+      badgeEl.className = "cyber-badge cyber-badge-cyan";
+      badgeEl.textContent = "SCANNING...";
+    }
+
+    setTimeout(() => {
+      if (btnScan) {
+        btnScan.disabled = false;
+        btnScan.textContent = "⚡ RUN NEURAL SCAN";
+      }
+      finalizeDiagnosis(targetName);
+    }, 1100);
+  } else {
+    finalizeDiagnosis(targetName);
+  }
+}
+
+function finalizeDiagnosis(targetName) {
+  const badgeEl = document.getElementById("advisor-status-badge");
+  const textEl = document.getElementById("advisor-diagnosis-text");
+  const rDecomp = document.getElementById("risk-decompression");
+  const rHypox = document.getElementById("risk-hypoxia");
+  const rStress = document.getElementById("risk-stress");
+
+  const decompVal = (0.01 + Math.random() * 0.03).toFixed(2);
+  const stressVal = Math.floor(16 + Math.random() * 8);
+
+  if (rDecomp) rDecomp.innerHTML = `${decompVal}% <span class="risk-sub">[LOW]</span>`;
+  if (rHypox) rHypox.innerHTML = `0.00% <span class="risk-sub">[NIL]</span>`;
+  if (rStress) rStress.innerHTML = `${stressVal}% <span class="risk-sub">[NORMAL]</span>`;
+
+  if (badgeEl) {
+    badgeEl.className = "cyber-badge cyber-badge-emerald";
+    badgeEl.textContent = "STABLE CLASSIFICATION";
+  }
+
+  if (textEl) {
+    textEl.textContent = `All autonomic nervous system markers indicate optimal physiological adaptation to microgravity for ${targetName}. Cardiac output, oxygenation curve, and hemodynamic stability remain within nominal EVA flight envelopes.`;
+  }
+}
+
+function dispatchProtocol(protocolKey) {
+  const feedbackEl = document.getElementById("protocol-feedback");
+  if (!feedbackEl) return;
+
+  const names = {
+    hydration: "HYDRATION PACK DISPENSE",
+    thermal: "LCVG TEMP REGULATE (+0.5°C)",
+    oxygen: "100% PRE-BREATHE FLUSH"
+  };
+
+  const name = names[protocolKey] || protocolKey.toUpperCase();
+  const time = new Date().toLocaleTimeString();
+
+  feedbackEl.style.display = "block";
+  feedbackEl.innerHTML = `✓ Protocol <strong>${name}</strong> transmitted to EMU-X Life Support Controller at ${time}. Telemetry acknowledge received.`;
+}
+
+function mountMedicalView() {
+  const mount = document.getElementById("medical-view-mount");
+  const homePanel = document.getElementById("medical-advisor-section");
+  if (mount && homePanel) {
+    mount.innerHTML = homePanel.innerHTML;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// 5. MISSION ALERTS FEED (Stream, ACK, and Anomaly Trigger)
+// ═════════════════════════════════════════════════════════════════════
+async function loadAlerts() {
+  const feedList = document.getElementById("alerts-feed-list");
+  const badgeCount = document.getElementById("alerts-count-badge");
+
+  try {
+    const res = await fetch("/api/alerts");
+    const data = await res.json();
+
+    if (!data.success || !Array.isArray(data.alerts)) return;
+
+    if (badgeCount) {
+      badgeCount.textContent = `${data.alerts.length} EVENTS`;
+    }
+
+    if (feedList) {
+      feedList.innerHTML = "";
+      data.alerts.forEach(alert => {
+        let badgeClass = "cyber-badge-cyan";
+        if (alert.severity === "CRITICAL") badgeClass = "cyber-badge-crimson";
+        if (alert.severity === "CAUTION") badgeClass = "cyber-badge-amber";
+        if (alert.severity === "NOMINAL") badgeClass = "cyber-badge-emerald";
+
+        const row = document.createElement("div");
+        row.className = "alert-row";
+
+        let ackBtnHtml = "";
+        if (!alert.acknowledged) {
+          ackBtnHtml = `<button class="btn-ack" onclick="acknowledgeAlert('${alert.id}')">ACK</button>`;
+        } else {
+          ackBtnHtml = `<span style="font-size:0.7rem; color:var(--text-muted);">ACK'D</span>`;
+        }
+
+        row.innerHTML = `
+          <div class="alert-content">
+            <span class="cyber-badge ${badgeClass}">${alert.severity}</span>
+            <div>
+              <div class="alert-title-text">${alert.title}</div>
+              <div class="alert-meta-text">${alert.time} • ${alert.subsystem}</div>
+            </div>
+          </div>
+          ${ackBtnHtml}
+        `;
+
+        feedList.appendChild(row);
+      });
+    }
+
+  } catch (err) {
+    console.error("Error loading mission alerts:", err);
+  }
+}
+
+async function acknowledgeAlert(alertId) {
+  try {
+    const res = await fetch("/api/alerts/ack", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: alertId })
+    });
+    if (res.ok) {
+      loadAlerts();
+    }
+  } catch (err) {
+    console.error("Error acknowledging alert:", err);
+  }
+}
+
+async function triggerSimulatedAnomaly() {
+  try {
+    const res = await fetch("/api/alerts/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    if (res.ok) {
+      loadAlerts();
+      loadHome();
+      loadVitals();
+
+      // Audio/Visual Feedback
+      const badge = document.getElementById("body-status-badge");
+      if (badge) {
+        badge.className = "status-badge status-critical";
+        badge.textContent = "CRITICAL: TACHYCARDIA ANOMALY DETECTED";
+      }
+
+      const stressEl = document.getElementById("risk-stress");
+      if (stressEl) {
+        stressEl.innerHTML = `78% <span class="risk-sub" style="color:#f87171;">[ELEVATED]</span>`;
+      }
+    }
+  } catch (err) {
+    console.error("Error triggering anomaly simulation:", err);
+  }
+}
+
+function mountAlertsView() {
+  const mount = document.getElementById("alerts-view-mount");
+  const homePanel = document.getElementById("mission-alerts-section");
+  if (mount && homePanel) {
+    mount.innerHTML = homePanel.innerHTML;
+    loadAlerts();
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// 6. HERO INTERACTIVE FEATURES (Canvas, Typewriter, Stats, Crew)
 // ═════════════════════════════════════════════════════════════════════
 
-// 1. Starfield & Comet Canvas Engine
+// Starfield & Comet Canvas Engine
 (function initSpaceCanvas() {
   const canvas = document.getElementById('space-bg');
   if (!canvas) return;
@@ -337,7 +548,6 @@ async function loadEnvironmental() {
     ctx.clearRect(0, 0, W, H);
     const t = ts * 0.001;
 
-    // Stars
     for (let i = 0; i < stars.length; i++) {
       const s = stars[i];
       const op = s.base + Math.sin(t * s.spd + s.off) * 0.18;
@@ -347,7 +557,6 @@ async function loadEnvironmental() {
       ctx.fill();
     }
 
-    // Comets
     for (let i = comets.length - 1; i >= 0; i--) {
       const c = comets[i];
       c.x += Math.cos(c.angle) * c.spd;
@@ -386,7 +595,7 @@ async function loadEnvironmental() {
   requestAnimationFrame(loop);
 })();
 
-// 2. Typewriter Effect
+// Typewriter Effect
 (function initTypewriter() {
   const words = ['Astronaut Health.', 'Deep-Space Vitals.', 'Crew Biometrics.'];
   let wordIdx = 0;
@@ -421,7 +630,7 @@ async function loadEnvironmental() {
   tick();
 })();
 
-// 3. Stats Count-Up Animation
+// Stats Count-Up Animation
 (function initStatsCountUp() {
   function animateValue(id, target, suffix = '', duration = 1400) {
     const el = document.getElementById(id);
@@ -445,7 +654,7 @@ async function loadEnvironmental() {
   }, 300);
 })();
 
-// 4. Crew Live Heart-Rate Fluctuation
+// Crew Live Heart-Rate Fluctuation
 (function initCrewPulse() {
   const crewIds = ['SV', 'MC', 'ER', 'DK'];
   setInterval(() => {
@@ -463,18 +672,22 @@ async function loadEnvironmental() {
 // Initial Page Load
 window.addEventListener("DOMContentLoaded", () => {
   const hash = window.location.hash.replace("#", "");
-  if (hash === "vitals" || hash === "environmental") {
+  if (hash === "vitals" || hash === "environmental" || hash === "medical" || hash === "alerts") {
     navigateTo(hash);
   } else {
     navigateTo("home");
   }
 
-  // Periodic Telemetry Refresh (Every 3 seconds)
+  // Periodic Telemetry & Alerts Refresh (Every 3 seconds)
   setInterval(() => {
     const active = document.querySelector(".page-view.active");
     if (!active) return;
-    if (active.id === "page-home") loadHome();
+    if (active.id === "page-home") {
+      loadHome();
+      loadAlerts();
+    }
     if (active.id === "page-vitals") loadVitals();
     if (active.id === "page-environmental") loadEnvironmental();
+    if (active.id === "page-alerts") loadAlerts();
   }, 3000);
 });

@@ -1057,3 +1057,341 @@ body {
     padding: 50px 16px 40px;
   }
 }
+
+
+/* ── AI Medical Advisor & Mission Alerts Styling ─────────────────────── */
+.advisor-panel,
+.alerts-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.advisor-header,
+.alerts-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.advisor-title-box,
+.alerts-title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}
+
+.advisor-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  font-family: var(--font-family);
+}
+
+.advisor-controls,
+.alerts-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.advisor-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.btn-neural-scan {
+  background: rgba(34, 197, 94, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-neural-scan:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: #34d399;
+  color: #ffffff;
+}
+
+.btn-sim-anomaly {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-sim-anomaly:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.diagnostic-card {
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.card-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.diagnostic-target {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.04em;
+}
+
+.diagnostic-text {
+  font-size: 0.92rem;
+  color: var(--text-main);
+  line-height: 1.68;
+  margin-bottom: 18px;
+}
+
+.risk-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.risk-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.risk-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.risk-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.risk-emerald { color: #34d399; }
+.risk-cyan { color: #38bdf8; }
+.risk-amber { color: #fbbf24; }
+.risk-crimson { color: #f87171; }
+
+.risk-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.protocols-box {
+  margin-top: 6px;
+}
+
+.protocols-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.protocol-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-protocol {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-protocol:hover {
+  background: var(--bg-card-hover);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.protocol-notification {
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 7px;
+  font-size: 0.86rem;
+  color: #ffffff;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ── Alerts Feed Stream ──────────────────────────────────────────────── */
+.alerts-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.alert-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.2s;
+}
+
+.alert-row:hover {
+  border-color: #3b4756;
+}
+
+.alert-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.alert-title-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.alert-meta-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-ack {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.btn-ack:hover {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #060913;
+}
+
+/* ── Cyber Badges ────────────────────────────────────────────────────── */
+.cyber-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.cyber-badge-emerald {
+  background: rgba(34, 197, 94, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.cyber-badge-cyan {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.cyber-badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.cyber-badge-crimson {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+}
+
+@media (max-width: 900px) {
+  .risk-matrix {
+    grid-template-columns: 1fr;
+  }
+}
