@@ -1,6 +1,27 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
+import { useTheme } from '../theme/ThemeProvider';
+
+const formatValue = (value, digits = 0) => {
+  if (!Number.isFinite(value)) return '—';
+  return Number(value).toFixed(digits).replace(/\.0$/, '');
+};
+
+const getMissionTone = (status) => {
+  if (status === 'CRITICAL') return 'critical';
+  if (status === 'CAUTION') return 'warning';
+  if (status === 'NOMINAL') return 'nominal';
+  return 'unknown';
+};
+
+const getAlertTone = (severity, resolved) => {
+  if (resolved) return 'resolved';
+  if (severity === 'CRITICAL') return 'critical';
+  if (severity === 'CAUTION') return 'warning';
+  if (severity === 'NOMINAL') return 'nominal';
+  return 'unknown';
+};
 
 export default function OverviewSection({
   crew = [],
@@ -11,36 +32,52 @@ export default function OverviewSection({
   missionStatus = 'CAUTION',
   isAlarmActive,
   onToggleAlarm,
-  onNavigate
+  onNavigate,
 }) {
   const canvasRef = useRef(null);
+  const { theme } = useTheme();
+  const hr = activeAstronaut?.hr;
+  const spo2 = activeAstronaut?.spo2;
+  const bpSys = activeAstronaut?.bpSys;
+  const bpDia = activeAstronaut?.bpDia;
+  const suitP = activeAstronaut?.suitP;
+  const o2 = activeAstronaut?.o2;
+  const respRate = activeAstronaut?.respRate;
+  const missionTone = getMissionTone(missionStatus);
+  const activeAlerts = alerts.filter((alert) => !alert.resolved && ['CRITICAL', 'CAUTION'].includes(alert.severity));
+  const criticalCount = activeAlerts.filter((alert) => alert.severity === 'CRITICAL').length;
+  const cautionCount = activeAlerts.filter((alert) => alert.severity === 'CAUTION').length;
+  const warningCrew = crew.filter((member) => member.status === 'Warning');
+  const nominalCrewCount = crew.filter((member) => member.status === 'Nominal').length;
+  const o2Readings = crew.map((member) => member.o2).filter(Number.isFinite);
+  const oxygenRange = o2Readings.length
+    ? `${formatValue(Math.min(...o2Readings))}–${formatValue(Math.max(...o2Readings))}%`
+    : '—';
+  const anomalyAlert = alerts.find((alert) => alert.severity === 'CRITICAL' && !alert.resolved);
+  const anomalyOwner = warningCrew[0];
 
-  const hr = activeAstronaut?.hr || 72;
-  const spo2 = activeAstronaut?.spo2 || 98.4;
-  const bpSys = activeAstronaut?.bpSys || 118;
-  const bpDia = activeAstronaut?.bpDia || 76;
-  const suitP = activeAstronaut?.suitP || 4.3;
-  const o2 = activeAstronaut?.o2 || 94;
-  const respRate = activeAstronaut?.respRate || 14;
-  const stress = activeAstronaut?.stress || 18;
-
-  // Real-time mini ECG canvas preview
+  // Procedural ECG preview. The waveform remains a display simulation, not a sensor feed.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !Number.isFinite(hr)) return undefined;
+
     const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+
     const width = canvas.width;
     const height = canvas.height;
-
+    const chartTokens = getComputedStyle(canvas);
+    const chartBackground = chartTokens.getPropertyValue('--dashboard-chart-bg').trim() || '#101820';
+    const traceColor = chartTokens.getPropertyValue('--status-nominal').trim() || '#54C79A';
     let currentX = 0;
     const points = new Array(width).fill(height / 2);
     let animationId = null;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const startTime = performance.now();
 
-    const getEcgSample = (t) => {
+    const getEcgSample = (time) => {
       const period = 60 / Math.max(40, hr);
-      const normalizedTime = (t % period) / period;
+      const normalizedTime = (time % period) / period;
       let sample = 0;
 
       if (normalizedTime > 0.1 && normalizedTime < 0.2) {
@@ -64,48 +101,39 @@ export default function OverviewSection({
         currentX = width;
       } else {
         const elapsed = (performance.now() - startTime) / 1000;
-        const yVal = height / 2 - getEcgSample(elapsed);
-        for (let i = 0; i < 3; i++) {
-          points[currentX] = yVal;
+        const yValue = height / 2 - getEcgSample(elapsed);
+        for (let index = 0; index < 3; index++) {
+          points[currentX] = yValue;
           currentX = (currentX + 1) % width;
         }
       }
 
-      ctx.fillStyle = '#080d1a';
+      ctx.fillStyle = chartBackground;
       ctx.fillRect(0, 0, width, height);
-
-      // Subtle horizontal baseline
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.strokeStyle = theme === 'light' ? 'rgba(23, 35, 56, 0.12)' : 'rgba(232, 222, 237, 0.18)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, height / 2);
       ctx.lineTo(width, height / 2);
       ctx.stroke();
 
-      // Waveform trace
       ctx.beginPath();
-      ctx.strokeStyle = '#10b981';
+      ctx.strokeStyle = traceColor;
       ctx.lineWidth = 2;
       ctx.lineJoin = 'round';
-
       for (let x = 0; x < width; x++) {
         if (!staticFrame && Math.abs(x - currentX) < 10) continue;
-        if (x === 0 || (!staticFrame && Math.abs(x - currentX) === 10)) {
-          ctx.moveTo(x, points[x]);
-        } else {
-          ctx.lineTo(x, points[x]);
-        }
+        if (x === 0 || (!staticFrame && Math.abs(x - currentX) === 10)) ctx.moveTo(x, points[x]);
+        else ctx.lineTo(x, points[x]);
       }
       ctx.stroke();
 
       if (staticFrame) return;
 
-      // Sweep head dot
       ctx.beginPath();
       ctx.arc(currentX, points[currentX], 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = theme === 'light' ? '#9A587C' : '#E09AC0';
       ctx.fill();
-
       if (!document.hidden) animationId = requestAnimationFrame(render);
     };
 
@@ -126,60 +154,89 @@ export default function OverviewSection({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       if (animationId !== null) cancelAnimationFrame(animationId);
     };
-  }, [hr]);
+  }, [hr, theme]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
-      {/* ── A. MISSION STATUS BAR ── */}
-      <div className="hud-panel" style={{
-        padding: '16px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <span className={`cyber-badge ${missionStatus === 'CRITICAL' ? 'cyber-badge-crimson' : missionStatus === 'CAUTION' ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`}>MISSION STATUS: {missionStatus}</span>
-          <span style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            ARTEMIS-BIO-VII • STAGE 03/06 (EXTERNAL HULL INSPECTION &amp; TELEMETRY SYNC)
+    <section className="mission-overview" aria-labelledby="mission-overview-title">
+      <header className="overview-page-heading">
+        <div>
+          <p className="overview-eyebrow">MISSION OPERATIONS <span aria-hidden="true">/</span> SITUATIONAL AWARENESS</p>
+          <h1 id="mission-overview-title">Mission overview</h1>
+          <p className="overview-page-heading__description">Crew health and life-support telemetry at a glance.</p>
+        </div>
+        <div className={`overview-mission-status overview-mission-status--${missionTone}`} role="status" aria-live="polite">
+          <span className="overview-mission-status__symbol" aria-hidden="true">
+            {missionTone === 'nominal' ? '✓' : missionTone === 'warning' ? '!' : missionTone === 'critical' ? '×' : '—'}
+          </span>
+          <span>
+            <span className="overview-mission-status__label">MISSION STATUS</span>
+            <span className="overview-mission-status__value">{missionStatus}</span>
           </span>
         </div>
+      </header>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className={`status-dot ${missionStatus === 'CRITICAL' ? 'critical' : missionStatus === 'CAUTION' ? 'warning' : 'nominal'}`} />
-            <span className="font-mono" style={{ fontSize: '0.8rem', color: missionStatus === 'CRITICAL' ? 'var(--hud-crimson)' : missionStatus === 'CAUTION' ? 'var(--hud-amber)' : 'var(--hud-emerald)' }}>
-              MISSION {missionStatus}
-            </span>
+      {isAlarmActive && (
+        <section className="overview-anomaly-banner" aria-labelledby="overview-anomaly-title">
+          <span className="overview-anomaly-banner__mark" aria-hidden="true">!</span>
+          <div className="overview-anomaly-banner__copy">
+            <p className="overview-anomaly-banner__eyebrow">SIMULATED ANOMALY ACTIVE</p>
+            <h2 id="overview-anomaly-title">{anomalyAlert?.title || 'Physiological telemetry anomaly'}</h2>
+            <p>
+              {anomalyAlert?.subsystem || 'Crew telemetry'}
+              {anomalyAlert?.time ? ` · ${anomalyAlert.time}` : ''}
+              {anomalyOwner ? ` · Affects ${anomalyOwner.name}` : ''}
+            </p>
           </div>
-
-          <button
-            onClick={() => onToggleAlarm && onToggleAlarm()}
-            className={isAlarmActive ? 'hud-btn-danger' : 'hud-btn'}
-            style={{ padding: '6px 14px', fontSize: '0.8rem' }}
-          >
-            {isAlarmActive ? '⚠️ CLEAR ALARM' : '🚨 SIM ANOMALY'}
+          <button type="button" className="overview-anomaly-banner__action" onClick={() => onToggleAlarm?.()}>
+            Resolve simulation
           </button>
-        </div>
-      </div>
+        </section>
+      )}
 
-      {/* ── B. FOUR ASTRONAUT SUMMARY CARDS ── */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h2 className="font-orbitron" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            CREW TELEMETRY OVERVIEW
-          </h2>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            Select an astronaut to switch dashboard context
-          </span>
+      <section className="overview-at-a-glance" aria-label="Mission health summary">
+        <article className="overview-summary-item overview-summary-item--crew">
+          <span className="overview-summary-item__index">01</span>
+          <div>
+            <h2>Crew telemetry</h2>
+            <p className="overview-summary-item__value">{nominalCrewCount}<span> / {crew.length || '—'}</span></p>
+            <p className="overview-summary-item__detail">
+              {warningCrew.length
+                ? `${warningCrew.length} crew member${warningCrew.length === 1 ? '' : 's'} need attention`
+                : crew.length > 0 && nominalCrewCount === crew.length ? 'Crew readings nominal' : 'Crew condition unavailable'}
+            </p>
+          </div>
+        </article>
+        <article className={`overview-summary-item${activeAlerts.length ? ' overview-summary-item--alerts' : ''}${criticalCount ? ' overview-summary-item--critical' : ''}`}>
+          <span className="overview-summary-item__index">02</span>
+          <div>
+            <h2>Open conditions</h2>
+            <p className="overview-summary-item__value">{activeAlerts.length}</p>
+            <p className="overview-summary-item__detail">
+              {criticalCount ? `${criticalCount} critical` : 'No critical conditions'}
+              {cautionCount ? ` · ${cautionCount} caution` : ''}
+            </p>
+          </div>
+        </article>
+        <article className="overview-summary-item overview-summary-item--systems">
+          <span className="overview-summary-item__index">03</span>
+          <div>
+            <h2>Crew oxygen range</h2>
+            <p className="overview-summary-item__value">{oxygenRange}</p>
+            <p className="overview-summary-item__detail">Pack telemetry · simulated</p>
+          </div>
+        </article>
+      </section>
+
+      <section className="overview-crew-section" aria-labelledby="overview-crew-title">
+        <div className="overview-section-heading">
+          <div>
+            <p className="overview-eyebrow">CREW STATUS</p>
+            <h2 id="overview-crew-title">Crew roster</h2>
+          </div>
+          <p>Select a crew member to inspect their telemetry.</p>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px'
-        }} className="overview-crew-grid">
+        <div className="overview-crew-grid">
           {crew.map((member) => {
             const isSelected = member.id === activeAstronaut?.id;
             const isWarning = member.status === 'Warning';
@@ -187,366 +244,167 @@ export default function OverviewSection({
               <button
                 type="button"
                 key={member.id}
+                className={`overview-crew-member${isSelected ? ' overview-crew-member--selected' : ''}${isWarning ? ' overview-crew-member--warning' : ''}`}
                 aria-pressed={isSelected}
-                onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
-                className="hud-panel"
-                style={{
-                  width: '100%',
-                  padding: '18px 20px',
-                  textAlign: 'left',
-                  color: 'inherit',
-                  cursor: 'pointer',
-                  border: isSelected
-                    ? '1px solid var(--hud-cyan)'
-                    : isWarning
-                    ? '1px solid rgba(239, 68, 68, 0.4)'
-                    : '1px solid var(--border-subtle)',
-                  background: isSelected
-                    ? 'rgba(56, 189, 248, 0.08)'
-                    : 'var(--bg-surface)',
-                  transition: 'all 0.18s ease',
-                  position: 'relative'
-                }}
+                aria-label={`Select ${member.name}, ${member.role}, ${member.status}, heart rate ${formatValue(member.hr)} beats per minute, blood oxygen ${formatValue(member.spo2, 1)} percent`}
+                onClick={() => onSelectAstronaut?.(member.id)}
               >
-                {/* Top: Avatar, Name, Status */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '50%',
-                      background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${isSelected ? 'var(--hud-cyan)' : 'var(--border-subtle)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: 'var(--font-hud)',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      color: isSelected ? 'var(--hud-cyan)' : '#ffffff',
-                    }}>
-                      {member.initials}
-                    </div>
-
-                    <div>
-                      <div className="font-orbitron" style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff' }}>
-                        {member.name.split(' ').slice(1).join(' ')}
-                      </div>
-                      <div className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {member.id} • {member.role.split('(')[0].trim()}
-                      </div>
-                    </div>
-                  </div>
-
-                  <span className={`status-dot ${isWarning ? 'warning' : 'nominal'}`} />
-                </div>
-
-                {/* Vitals: Clean and spacious (HR and SpO2 only!) */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'rgba(0, 0, 0, 0.25)',
-                  padding: '10px 14px',
-                  borderRadius: '6px',
-                  marginTop: '10px'
-                }}>
-                  <div>
-                    <div className="font-ui" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                      Heart Rate
-                    </div>
-                    <div className="font-orbitron" style={{ fontSize: '1.25rem', fontWeight: 700, color: member.hr > 100 ? 'var(--hud-crimson)' : 'var(--hud-emerald)' }}>
-                      {member.hr} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)' }}>BPM</span>
-                    </div>
-                  </div>
-
-                  <div style={{ width: '1px', height: '28px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="font-ui" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                      Blood O₂
-                    </div>
-                    <div className="font-orbitron" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--hud-cyan)' }}>
-                      {member.spo2}%
-                    </div>
-                  </div>
-                </div>
+                <span className="overview-crew-member__topline">
+                  <span className="overview-crew-member__initials" aria-hidden="true">{member.initials}</span>
+                  <span className={`overview-crew-member__status overview-crew-member__status--${isWarning ? 'warning' : 'nominal'}`}>
+                    <span aria-hidden="true">{isWarning ? '!' : '✓'}</span>{isWarning ? 'ATTENTION' : 'NOMINAL'}
+                  </span>
+                  {isSelected && <span className="overview-crew-member__selected">SELECTED</span>}
+                </span>
+                <span className="overview-crew-member__name">{member.name}</span>
+                <span className="overview-crew-member__role">{member.id} <span aria-hidden="true">·</span> {member.role}</span>
+                <span className="overview-crew-member__readings">
+                  <span><span>HR</span><strong>{formatValue(member.hr)} <small>bpm</small></strong></span>
+                  <span><span>SpO₂</span><strong>{formatValue(member.spo2, 1)}<small>%</small></strong></span>
+                </span>
               </button>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      {/* ── C. MAIN MONITORING AREA ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '24px' }} className="overview-main-grid">
-        {/* Left Column: Selected Astronaut Bio-Metrics & ECG Preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Card 1: Prominent Biometrics */}
-          <div className="hud-panel" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+      <div className="overview-detail-grid">
+        <div className="overview-detail-primary">
+          <section className="overview-panel overview-subject-panel" aria-labelledby="overview-subject-title">
+            <div className="overview-panel-heading">
               <div>
-                <span className="font-mono" style={{ fontSize: '0.74rem', color: 'var(--hud-cyan)', letterSpacing: '0.05em' }}>
-                  ACTIVE SUBJECT TELEMETRY
-                </span>
-                <h3 className="font-orbitron" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '4px 0 0 0' }}>
-                  {activeAstronaut?.name}
-                </h3>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  {activeAstronaut?.role}
-                </div>
+                <p className="overview-eyebrow">SELECTED CREW TELEMETRY</p>
+                <h2 id="overview-subject-title">{activeAstronaut?.name || 'No crew member selected'}</h2>
+                {activeAstronaut?.role && <p>{activeAstronaut.role}</p>}
               </div>
-
-              <span className={`cyber-badge ${activeAstronaut?.status === 'Warning' ? 'cyber-badge-crimson' : 'cyber-badge-emerald'}`}>
-                {activeAstronaut?.status.toUpperCase()}
-              </span>
+              {activeAstronaut && (
+                <span className={`overview-text-status overview-text-status--${activeAstronaut.status === 'Warning' ? 'warning' : 'nominal'}`}>
+                  <span aria-hidden="true">{activeAstronaut.status === 'Warning' ? '!' : '✓'}</span>
+                  {activeAstronaut.status.toUpperCase()}
+                </span>
+              )}
             </div>
-
-            {/* 4 Essential Metrics */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }} className="overview-metrics-grid">
-              <div className="metric-card">
-                <span className="label">Heart Rate</span>
-                <span className="value font-orbitron" style={{ color: hr > 100 ? 'var(--hud-crimson)' : 'var(--hud-emerald)' }}>
-                  {hr} <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-muted)' }}>BPM</span>
-                </span>
+            <dl className="overview-vitals-grid">
+              <div className="overview-vital overview-vital--heart">
+                <dt>Heart rate</dt>
+                <dd>{formatValue(hr)} <span>bpm</span></dd>
               </div>
-
-              <div className="metric-card">
-                <span className="label">Blood O₂ (SpO₂)</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-cyan)' }}>
-                  {spo2}%
-                </span>
+              <div className="overview-vital">
+                <dt>Blood oxygen · SpO₂</dt>
+                <dd>{formatValue(spo2, 1)}<span>%</span></dd>
               </div>
-
-              <div className="metric-card">
-                <span className="label">Blood Pressure</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-violet)' }}>
-                  {bpSys}/{bpDia} <span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--text-muted)' }}>mmHg</span>
-                </span>
+              <div className="overview-vital">
+                <dt>Blood pressure</dt>
+                <dd>{formatValue(bpSys)}/{formatValue(bpDia)} <span>mmHg</span></dd>
               </div>
-
-              <div className="metric-card">
-                <span className="label">Respiration</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-amber)' }}>
-                  {respRate} <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-muted)' }}>BrPM</span>
-                </span>
+              <div className="overview-vital">
+                <dt>Respiration</dt>
+                <dd>{formatValue(respRate)} <span>/ min</span></dd>
               </div>
-            </div>
-          </div>
+            </dl>
+            <p className="overview-data-note">Simulated crew readings · demonstration data, not medical measurements.</p>
+          </section>
 
-          {/* Card 2: Readable ECG Waveform Preview */}
-          <div className="hud-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>🫀</span>
-                <h4 className="font-orbitron" style={{ fontSize: '0.92rem', color: '#fff', margin: 0 }}>
-                  LIVE CARDIAC TRACE (LEAD-II PREVIEW)
-                </h4>
+          <section className="overview-panel overview-ecg-panel" aria-labelledby="overview-ecg-title">
+            <div className="overview-panel-heading overview-panel-heading--compact">
+              <div>
+                <p className="overview-eyebrow">PROCEDURAL DISPLAY</p>
+                <h2 id="overview-ecg-title">ECG waveform preview</h2>
               </div>
-
-              <button
-                onClick={() => onNavigate && onNavigate('biomonitor')}
-                className="hud-btn hud-btn-primary"
-                style={{ padding: '4px 12px', fontSize: '0.75rem' }}
-              >
-                Full Bio-Monitor →
+              <button type="button" className="overview-text-link" onClick={() => onNavigate?.('biomonitor')}>
+                Open Bio-Monitor <span aria-hidden="true">→</span>
               </button>
             </div>
-
-            <div style={{
-              borderRadius: '6px',
-              overflow: 'hidden',
-              border: '1px solid var(--border-subtle)',
-              height: '180px',
-              background: '#080d1a'
-            }}>
-              <canvas
-                ref={canvasRef}
-                width={700}
-                height={180}
-                style={{ width: '100%', height: '100%', display: 'block' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              <span>Procedural waveform • display animation</span>
-              <span>Procedural physiological simulation</span>
-            </div>
-          </div>
+            <figure className="overview-ecg-figure">
+              <div className="overview-ecg-canvas-wrap">
+                <canvas
+                  ref={canvasRef}
+                  width={700}
+                  height={180}
+                  role="img"
+                  aria-label={`Procedural ECG waveform preview for ${activeAstronaut?.name || 'selected crew member'}; simulation at ${formatValue(hr)} beats per minute`}
+                >
+                  Procedural ECG waveform preview. This is simulated display data.
+                </canvas>
+              </div>
+              <figcaption><span>Waveform uses selected crew heart-rate input</span><span>Not a sensor feed</span></figcaption>
+            </figure>
+          </section>
         </div>
 
-        {/* Right Column: Subsystems and AI Advisor */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Card 3: Life Support Overview */}
-          <div className="hud-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: '#fff', margin: 0 }}>
-                EVA LIFE SUPPORT (PLSS)
-              </h4>
-              <button
-                onClick={() => onNavigate && onNavigate('lifesupport')}
-                className="hud-btn"
-                style={{ padding: '4px 10px', fontSize: '0.72rem' }}
-              >
-                Details →
+        <aside className="overview-detail-secondary" aria-label="Life support and medical tools">
+          <section className="overview-panel overview-life-support" aria-labelledby="overview-life-support-title">
+            <div className="overview-panel-heading overview-panel-heading--compact">
+              <div>
+                <p className="overview-eyebrow">SELECTED CREW MEMBER</p>
+                <h2 id="overview-life-support-title">Suit telemetry</h2>
+              </div>
+              <button type="button" className="overview-text-link" onClick={() => onNavigate?.('lifesupport')}>
+                Details <span aria-hidden="true">→</span>
               </button>
             </div>
+            <dl className="overview-system-readings">
+              <div><dt>Suit pressure</dt><dd>{formatValue(suitP, 1)} <span>PSI</span></dd></div>
+              <div><dt>Primary oxygen</dt><dd>{formatValue(o2)}<span>%</span></dd></div>
+            </dl>
+            <p className="overview-data-note">Crew pack telemetry · simulated values.</p>
+          </section>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Suit Pressure</span>
-                  <span className="font-mono" style={{ color: 'var(--hud-cyan)', fontWeight: 600 }}>{suitP} PSI</span>
-                </div>
-                <div className="telemetry-bar-bg">
-                  <div className="telemetry-bar-fill" style={{ width: `${(suitP / 15) * 100}%`, background: 'var(--hud-cyan)' }} />
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Primary O₂ Tank</span>
-                  <span className="font-mono" style={{ color: 'var(--hud-emerald)', fontWeight: 600 }}>{o2}% (~6.1h)</span>
-                </div>
-                <div className="telemetry-bar-bg">
-                  <div className="telemetry-bar-fill" style={{ width: `${o2}%`, background: 'var(--hud-emerald)' }} />
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>CO₂ Scrubber Level</span>
-                  <span className="font-mono" style={{ color: '#ffffff', fontWeight: 600 }}>0.18 mmHg</span>
-                </div>
-                <div className="telemetry-bar-bg">
-                  <div className="telemetry-bar-fill" style={{ width: '15%', background: 'var(--hud-violet)' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: AI Medical Advisor Preview */}
-          <div className="hud-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1rem' }}>🧠</span>
-                <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: '#fff', margin: 0 }}>
-                  AI MEDICAL ADVISOR
-                </h4>
-              </div>
-              <span className={`cyber-badge ${stress > 50 ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`}>
-                {stress > 50 ? 'METABOLIC SPIKE' : 'STABLE'}
-              </span>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5, margin: '0 0 14px 0' }}>
-              {stress > 50
-                ? `Cardiac rate and sympathetic tone elevated for ${activeAstronaut?.name}. Recommend hydration protocol.`
-                : `Autonomic regulation is optimal for ${activeAstronaut?.name}. Decompression sickness risk is 0.02% (nominal).`}
-            </p>
-
-            <button
-              onClick={() => onNavigate && onNavigate('medical')}
-              className="hud-btn hud-btn-primary"
-              style={{ width: '100%', fontSize: '0.78rem', padding: '8px 12px' }}
-            >
-              Open AI Medical Advisor →
+          <section className="overview-advisor-callout" aria-labelledby="overview-advisor-title">
+            <div className="overview-advisor-callout__eyebrow">SIMULATION TOOL</div>
+            <h2 id="overview-advisor-title">Medical Advisor</h2>
+            <p>Open the procedural advisory demonstration. It does not provide a clinical diagnosis.</p>
+            <button type="button" className="overview-advisor-callout__action" onClick={() => onNavigate?.('medical')}>
+              Open advisor <span aria-hidden="true">→</span>
             </button>
-          </div>
-
-        </div>
+          </section>
+        </aside>
       </div>
 
-      {/* ── D. RECENT MISSION ALERTS LOG ── */}
-      <div className="hud-panel" style={{ padding: '22px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <section className="overview-alerts" aria-labelledby="overview-alerts-title">
+        <div className="overview-section-heading overview-alerts__heading">
           <div>
-            <h3 className="font-orbitron" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-              MISSION EVENT &amp; TELEMETRY LOG
-            </h3>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-              Recent subsystem events and anomaly alerts
-            </span>
+            <p className="overview-eyebrow">OPERATIONAL EVENTS</p>
+            <h2 id="overview-alerts-title">Recent alerts</h2>
           </div>
-
-          <button
-            onClick={() => onNavigate && onNavigate('crew')}
-            className="hud-btn"
-            style={{ padding: '5px 12px', fontSize: '0.75rem' }}
-          >
-            View All Events ({alerts.length}) →
+          <button type="button" className="overview-text-link" onClick={() => onNavigate?.('crew')}>
+            View all events <span aria-hidden="true">→</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {alerts.slice(0, 4).map((alert) => {
-            const isCrit = alert.severity === 'CRITICAL' && !alert.resolved;
-            const isCaut = alert.severity === 'CAUTION' && !alert.resolved;
-
-            return (
-              <div
-                key={alert.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  background: isCrit ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                  border: `1px solid ${isCrit ? 'rgba(239, 68, 68, 0.35)' : isCaut ? 'rgba(245, 158, 11, 0.25)' : 'var(--border-subtle)'}`,
-                  borderRadius: '6px',
-                  gap: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                  <span className={`cyber-badge ${isCrit ? 'cyber-badge-crimson' : isCaut ? 'cyber-badge-amber' : 'cyber-badge-emerald'}`} style={{ fontSize: '0.65rem' }}>
-                    {alert.resolved ? 'RESOLVED' : alert.severity}
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {alert.title}
-                    </div>
-                    <div className="font-mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      {alert.time} • Subsystem: {alert.subsystem}
-                    </div>
+        {alerts.length ? (
+          <ul className="overview-alert-list">
+            {alerts.slice(0, 4).map((alert) => {
+              const tone = getAlertTone(alert.severity, alert.resolved);
+              return (
+                <li key={alert.id} className={`overview-alert overview-alert--${tone}`}>
+                  <span className="overview-alert__severity">{alert.resolved ? 'RESOLVED' : alert.severity || 'UNKNOWN'}</span>
+                  <div className="overview-alert__content">
+                    <p className="overview-alert__title">{alert.title}</p>
+                    <p className="overview-alert__meta">
+                      <span>{alert.subsystem}</span>
+                      {alert.time && <><span aria-hidden="true">·</span><time>{alert.time}</time></>}
+                    </p>
                   </div>
-                </div>
+                  <div className="overview-alert__action">
+                    {alert.acknowledged ? (
+                      <span className="overview-alert__acknowledged"><span aria-hidden="true">✓</span> Acknowledged</span>
+                    ) : onAcknowledge ? (
+                      <button type="button" onClick={() => onAcknowledge(alert.id)} aria-label={`Acknowledge alert: ${alert.title}`}>
+                        Acknowledge
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="overview-alerts__empty">No mission events have been recorded.</p>
+        )}
+      </section>
 
-                {!alert.acknowledged && onAcknowledge ? (
-                  <button
-                    onClick={() => onAcknowledge(alert.id)}
-                    className="hud-btn hud-btn-emerald"
-                    style={{ padding: '3px 10px', fontSize: '0.7rem', flexShrink: 0 }}
-                  >
-                    Acknowledge
-                  </button>
-                ) : (
-                  <span className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    ✓ ACKNOWLEDGED
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <style>{`
-        @media (max-width: 1100px) {
-          .overview-crew-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-          .overview-main-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 600px) {
-          .overview-crew-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .overview-metrics-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-      `}</style>
-    </div>
+      <p className="overview-simulation-disclosure">Demonstration simulation · No spacecraft hardware, live sensors, or clinical systems are connected.</p>
+    </section>
   );
 }

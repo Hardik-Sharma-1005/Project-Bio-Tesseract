@@ -162,7 +162,7 @@ export default function Home() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <>
+    <div className="dashboard-root">
       {/* Subtle scanline overlay */}
       <div className="scanline-overlay" aria-hidden="true" />
 
@@ -173,6 +173,7 @@ export default function Home() {
         missionStatus={missionStatus}
         onToggleAlarm={handleToggleAlarm}
         onMenuToggle={handleMenuToggle}
+        isSidebarOpen={sidebarOpen}
       />
 
       <div className={`main-content-wrapper${sidebarOpen ? ' sidebar-open' : ''}`}>
@@ -242,6 +243,6 @@ export default function Home() {
           )}
         </main>
       </div>
-    </>
+    </div>
   );
 }
