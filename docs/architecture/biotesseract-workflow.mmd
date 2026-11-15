@@ -1,0 +1,34 @@
+flowchart LR
+  subgraph SIM[Simulated operational state]
+    Crew[Generated crew biometrics and suit readings]
+    Events[Mission events and alert lifecycle]
+  end
+  Shared[Shared dashboard state<br/>crew selection · mission status · alerts]
+  Crew --> Shared
+  Events --> Shared
+
+  Shared --> Overview[Mission Overview]
+  Shared --> Bio[Bio-Monitor]
+  Shared --> Life[Life Support]
+  Shared --> Medical[Medical Advisor simulation<br/>not diagnosis]
+  Shared --> CrewAlerts[Crew and Alerts]
+
+  Supabase[Supabase / PostgreSQL<br/>historical telemetry relation]
+  History[Historical telemetry view<br/>separate source · bounded chart samples]
+  Supabase -->|read-only browser queries| History
+  History --> Bio
+  History --> Life
+  History --> Overview
+
+  BioAstra[BioAstra deterministic command interface]
+  Shared -. supported reads and navigation .-> BioAstra
+  BioAstra -. confirmation before state changes .-> Shared
+
+  classDef simulated fill:#fbf2f8,stroke:#bd82a5,color:#37172d
+  classDef shared fill:#f7f4f6,stroke:#a992a1,color:#37172d
+  classDef history fill:#f0f6fa,stroke:#83a8bd,color:#263f4e
+  classDef view fill:#fff,stroke:#d8c7d2,color:#37172d
+  class Crew,Events simulated
+  class Shared shared
+  class Supabase,History history
+  class Overview,Bio,Life,Medical,CrewAlerts,BioAstra view

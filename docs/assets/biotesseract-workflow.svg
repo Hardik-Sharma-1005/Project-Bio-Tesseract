@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" role="img" aria-labelledby="title description">
+  <title id="title">Bio-Tesseract system workflow</title>
+  <desc id="description">Simulated crew readings and mission events feed shared dashboard state and operational views. Historical telemetry travels separately from Supabase into historical panels. BioAstra interprets commands against shared state and requests confirmation for state changes.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#7B5570"/></marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#477A9C"/></marker>
+    <style>.title{font:700 30px Arial,sans-serif;fill:#37172D}.subtitle{font:15px Arial,sans-serif;fill:#715C6B}.head{font:700 17px Arial,sans-serif;fill:#37172D}.body{font:14px Arial,sans-serif;fill:#594856}.small{font:12px Arial,sans-serif;fill:#665563}.label{font:700 12px Arial,sans-serif;letter-spacing:1.2px;fill:#7B5570}.box{fill:#fff;stroke:#D8C7D2;stroke-width:1.5}.sim{fill:#FBF2F8;stroke:#BD82A5}.hist{fill:#F0F6FA;stroke:#83A8BD}.shared{fill:#F7F4F6;stroke:#A992A1}.arrow{fill:none;stroke:#7B5570;stroke-width:2;marker-end:url(#arrow)}.arrowBlue{fill:none;stroke:#477A9C;stroke-width:2;marker-end:url(#arrow-blue)}</style>
+  </defs>
+  <rect width="1200" height="850" rx="24" fill="#FCFAFC"/>
+  <text x="600" y="56" text-anchor="middle" class="title">BIO-TESSERACT · SYSTEM WORKFLOW</text>
+  <text x="600" y="83" text-anchor="middle" class="subtitle">One operational interface, with generated live simulation and stored history kept distinct</text>
+  <text x="70" y="132" class="label">SIMULATED OPERATIONAL STATE</text>
+  <rect x="70" y="151" width="310" height="120" rx="16" class="box sim"/>
+  <text x="94" y="184" class="head">Crew telemetry simulation</text><text x="94" y="211" class="body">Generated readings · shared crew selection</text><text x="94" y="237" class="small">Vitals, suit readings, simulated anomaly</text>
+  <rect x="70" y="303" width="310" height="96" rx="16" class="box sim"/>
+  <text x="94" y="338" class="head">Mission events</text><text x="94" y="365" class="body">Alert selection · acknowledgement · resolution</text>
+  <path d="M380 211H430V300H470M380 351H430V320H470" class="arrow"/>
+  <rect x="470" y="252" width="280" height="118" rx="18" class="box shared"/>
+  <text x="610" y="286" text-anchor="middle" class="head">Shared dashboard state</text><text x="610" y="314" text-anchor="middle" class="body">Selected crew · active section</text><text x="610" y="340" text-anchor="middle" class="body">Mission status · alert lifecycle</text>
+  <path d="M750 310H808V203H850M808 310V339H850M808 339V474H850M808 474V609H850" class="arrow"/>
+  <rect x="850" y="151" width="280" height="104" rx="16" class="box"/><text x="875" y="184" class="head">Mission Overview</text><text x="875" y="211" class="body">Mission status · crew · alerts</text><text x="875" y="235" class="small">Compact historical telemetry panel</text>
+  <rect x="850" y="287" width="280" height="104" rx="16" class="box"/><text x="875" y="320" class="head">Bio-Monitor &amp; Life Support</text><text x="875" y="347" class="body">Simulated crew and suit readings</text>
+  <rect x="850" y="422" width="280" height="104" rx="16" class="box"/><text x="875" y="455" class="head">Medical Advisor</text><text x="875" y="482" class="body">Scenario simulation · not diagnosis</text>
+  <rect x="850" y="557" width="280" height="104" rx="16" class="box"/><text x="875" y="590" class="head">Crew &amp; Alerts</text><text x="875" y="617" class="body">Roster and alert management</text>
+  <rect x="70" y="477" width="310" height="118" rx="16" class="box hist"/>
+  <text x="94" y="511" class="head">Supabase · PostgreSQL</text><text x="94" y="539" class="body">Stored historical telemetry relation</text><text x="94" y="565" class="small">Read-only browser queries · no crew mapping</text>
+  <path d="M380 536H470" class="arrowBlue"/>
+  <rect x="470" y="477" width="280" height="118" rx="18" class="box hist"/>
+  <text x="610" y="511" text-anchor="middle" class="head">Historical telemetry view</text><text x="610" y="539" text-anchor="middle" class="body">Separate data path and labels</text><text x="610" y="565" text-anchor="middle" class="small">Bounded chart samples · timestamped</text>
+  <path d="M750 536H790V339H850" class="arrowBlue"/>
+  <rect x="70" y="675" width="1060" height="122" rx="18" fill="#F8F3F6" stroke="#D8C7D2" stroke-width="1.5"/>
+  <text x="96" y="710" class="label">BIOASTRA · DETERMINISTIC COMMAND INTERFACE</text><text x="96" y="743" class="body">Reads supported questions against shared dashboard state and can navigate between sections.</text><text x="96" y="770" class="body">State-changing commands ask for confirmation before updating alerts or the simulated anomaly.</text>
+  <path d="M610 675V630H750V370" class="arrow"/><text x="632" y="653" class="small">reads shared state</text>
+</svg>

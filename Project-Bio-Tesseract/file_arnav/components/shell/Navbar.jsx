@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import ThemeToggle from '../theme/ThemeToggle';
+import BioTesseractLogo from '../logo/BioTesseractLogo';
 
 const CREW_OPTIONS = [
-  { id: 'AST-01', label: 'Cmdr. Sarah Vance · EVA-1' },
-  { id: 'AST-02', label: 'Dr. Marcus Chen · EVA-2' },
-  { id: 'AST-03', label: 'Eng. Elena Rostova · Airlock' },
-  { id: 'AST-04', label: 'Pilot David Kalu · Orbiter' },
+  { id: 'AST-01', label: 'Sarah Vance · EVA-1' },
+  { id: 'AST-02', label: 'Marcus Chen · EVA-2' },
+  { id: 'AST-03', label: 'Elena Rostova · Airlock' },
+  { id: 'AST-04', label: 'David Kalu · Orbiter' },
 ];
 
 const getStatusTone = (status) => (
@@ -53,8 +53,8 @@ export default function Navbar({
 
   return (
     <header className={`dashboard-navbar${isAlarmActive ? ' dashboard-navbar--alert' : ''}`}>
-      <Link className="dashboard-brand" href="/dashboard" aria-label="Bio-Tesseract dashboard">
-        <span className="dashboard-brand__mark" aria-hidden="true">＋</span>
+      <Link className="dashboard-brand" href="/" aria-label="Bio-Tesseract home">
+        <BioTesseractLogo className="dashboard-brand__mark" size={40} />
         <span className="dashboard-brand__copy">
           <span className="dashboard-brand__name">BIO-TESSERACT</span>
           <span className="dashboard-brand__descriptor">CREW HEALTH &amp; MISSION SYSTEMS</span>
@@ -101,13 +101,12 @@ export default function Navbar({
           className={`dashboard-anomaly-button${isAlarmActive ? ' dashboard-anomaly-button--active' : ''}`}
           onClick={() => onToggleAlarm?.()}
           aria-pressed={isAlarmActive}
+          aria-label={isAlarmActive ? 'Resolve simulated anomaly' : 'Simulate anomaly'}
           title={isAlarmActive ? 'Resolve the simulated anomaly' : 'Run a simulated anomaly'}
         >
           <span className="dashboard-anomaly-button__indicator" aria-hidden="true" />
-          <span>{isAlarmActive ? 'Resolve simulation' : 'Simulate anomaly'}</span>
+          <span>{isAlarmActive ? 'Resolve' : 'Simulate'}</span>
         </button>
-
-        <ThemeToggle className="theme-toggle--dashboard" />
 
         <button
           type="button"
@@ -115,9 +114,9 @@ export default function Navbar({
           onClick={() => onToggleCopilot?.()}
           aria-expanded={isCopilotOpen}
           aria-controls="mission-copilot-panel"
-          aria-label={isCopilotOpen ? 'Close Mission Copilot' : 'Open Mission Copilot'}
+          aria-label={isCopilotOpen ? 'Close BioAstra' : 'Open BioAstra'}
         >
-          <span aria-hidden="true">⌘</span><span>Copilot</span>
+          <span className="bioastra-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.8 13.8 9l6.2 3-6.2 2-1.8 7-1.8-7L4 12l6.2-3L12 2.8Z"/><path d="m19 3 .7 2.3L22 6l-2.3.7L19 9l-.7-2.3L16 6l2.3-.7L19 3Z"/></svg></span><span>BioAstra</span>
         </button>
 
         <button

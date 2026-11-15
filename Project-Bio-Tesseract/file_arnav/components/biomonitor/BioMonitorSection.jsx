@@ -3,6 +3,7 @@
 import React from 'react';
 import LiveEcgChart from './LiveEcgChart';
 import HistoricalTelemetryPanel from '../telemetry/HistoricalTelemetryPanel';
+import CrewPortrait from '../crew/CrewPortrait';
 
 const displayValue = (value, decimals = 0) => (
   Number.isFinite(value) ? Number(value).toFixed(decimals).replace(/\.0$/, '') : '—'
@@ -35,9 +36,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
     <section className="biomonitor-section" aria-labelledby="biomonitor-title">
       <header className="biomonitor-page-heading">
         <div>
-          <p className="overview-eyebrow">PHYSIOLOGY <span aria-hidden="true">/</span> CREW TELEMETRY</p>
           <h1 id="biomonitor-title">Bio-Monitor</h1>
-          <p className="biomonitor-page-heading__description">A simulated view of crew cardiovascular and respiratory telemetry.</p>
         </div>
         <div className={`biomonitor-status biomonitor-status--${statusTone}`} role="status" aria-live="polite">
           <span className="biomonitor-status__symbol" aria-hidden="true">
@@ -63,7 +62,6 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
       <section className="biomonitor-crew-context" aria-labelledby="biomonitor-crew-title">
         <div className="biomonitor-crew-context__heading">
           <div>
-            <p className="overview-eyebrow">MONITORING SUBJECT</p>
             <h2 id="biomonitor-crew-title">{activeAstronaut?.name || 'Crew member unavailable'}</h2>
             <p>{activeAstronaut ? `${activeAstronaut.id} · ${activeAstronaut.role}` : 'Select an available crew member.'}</p>
           </div>
@@ -85,7 +83,7 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
                 aria-label={`Monitor ${member.name}, ${member.role}, telemetry ${member.status}`}
                 onClick={() => onSelectAstronaut?.(member.id)}
               >
-                <span className="biomonitor-crew-option__initials" aria-hidden="true">{member.initials}</span>
+                <CrewPortrait member={member} className="biomonitor-crew-option__portrait" />
                 <span className="biomonitor-crew-option__copy">
                   <span className="biomonitor-crew-option__name">{member.name}</span>
                   <span className="biomonitor-crew-option__role">{member.role}</span>
@@ -104,7 +102,6 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
         <section className="biomonitor-waveform-panel" aria-labelledby="biomonitor-waveform-title">
           <div className="biomonitor-panel-heading">
             <div>
-              <p className="overview-eyebrow">PROCEDURAL WAVEFORM DISPLAY</p>
               <h2 id="biomonitor-waveform-title">Cardiac &amp; pulse signals</h2>
             </div>
             <span className="biomonitor-subject-tag">{activeAstronaut?.id || 'NO SUBJECT'}</span>
@@ -119,43 +116,22 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
           />
         </section>
 
-        <aside className="biomonitor-reference-column" aria-label="Illustrative and derived parameters">
-          <section className="biomonitor-reference-panel" aria-labelledby="biomonitor-intervals-title">
-            <div className="biomonitor-reference-heading">
-              <div>
-                <p className="overview-eyebrow">STATIC DEMONSTRATION EXAMPLES</p>
-                <h2 id="biomonitor-intervals-title">ECG intervals</h2>
-              </div>
-              <span className="biomonitor-example-tag">FIXED</span>
-            </div>
-            <dl className="biomonitor-interval-list">
-              <div><dt>QT / QTc interval</dt><dd>392 / 418 <span>ms</span></dd></div>
-              <div><dt>PR interval</dt><dd>158 <span>ms</span></dd></div>
-              <div><dt>QRS duration</dt><dd>86 <span>ms</span></dd></div>
-              <div><dt>ST segment deviation</dt><dd>+0.02 <span>mV</span></dd></div>
-            </dl>
-            <p className="biomonitor-reference-note">Fixed illustrative values; not measured, crew-specific, or clinically assessed.</p>
-          </section>
-
+        <aside className="biomonitor-reference-column" aria-label="Derived parameters">
           <section className="biomonitor-reference-panel" aria-labelledby="biomonitor-hemodynamics-title">
             <div className="biomonitor-reference-heading">
               <div>
-                <p className="overview-eyebrow">DEMO PARAMETERS</p>
-                <h2 id="biomonitor-hemodynamics-title">Hemodynamic examples</h2>
+                <h2 id="biomonitor-hemodynamics-title">Hemodynamics</h2>
               </div>
             </div>
             <dl className="biomonitor-hemodynamic-list">
-              <div><dt>Cardiac output <span>fixed example</span></dt><dd>5.4 <small>L/min</small></dd></div>
-              <div><dt>Stroke volume <span>fixed example</span></dt><dd>75 <small>mL</small></dd></div>
-              <div><dt>Mean arterial pressure <span>derived from demo BP</span></dt><dd>{displayValue(map)} <small>mmHg</small></dd></div>
-              <div><dt>Pulse pressure <span>derived from demo BP</span></dt><dd>{displayValue(pulsePressure)} <small>mmHg</small></dd></div>
+              <div><dt>Mean arterial pressure</dt><dd>{displayValue(map)} <small>mmHg</small></dd></div>
+              <div><dt>Pulse pressure</dt><dd>{displayValue(pulsePressure)} <small>mmHg</small></dd></div>
             </dl>
           </section>
 
           <section className="biomonitor-stress-panel" aria-labelledby="biomonitor-stress-title">
             <div className="biomonitor-stress-panel__heading">
               <div>
-                <p className="overview-eyebrow">SIMULATION INPUT</p>
                 <h2 id="biomonitor-stress-title">Stress index</h2>
               </div>
               <p>{displayValue(stress)}<span>%</span></p>
@@ -171,16 +147,12 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
             >
               <span style={{ width: `${Number.isFinite(stress) ? Math.min(100, Math.max(0, stress)) : 0}%` }} />
             </div>
-            <p>Demonstration input only. No autonomic or baroreflex assessment is performed.</p>
           </section>
         </aside>
       </div>
 
       <HistoricalTelemetryPanel group="physiology" />
 
-      <p className="biomonitor-disclosure">
-        Simulated measurements only · SpO₂ is blood oxygen saturation, separate from suit oxygen telemetry. No physical sensors are connected; these values are not clinical measurements.
-      </p>
     </section>
   );
 }

@@ -186,10 +186,12 @@ export function recognizeCommand(input, context) {
     return result('ACKNOWLEDGE_ALERT', 'confirm', { action: { type: 'acknowledgeAlert', alertId: alert.id, title: alert.title } });
   }
 
-  const alertList = matchesAny(text, [/\b(list|show|display|what are|which are)\b/]) && text.includes('alert');
+  const alertList = (matchesAny(text, [/\b(list|show|display|what are|which are)\b/]) && text.includes('alert'))
+    || matchesAny(text, [/\b(unresolved|critical|caution|all) alerts?\b/]);
   if (alertList) {
     const severity = text.includes('critical') ? 'CRITICAL' : text.includes('caution') ? 'CAUTION' : null;
-    const unresolvedOnly = !text.includes('resolved') && !text.includes('acknowledged') && !text.includes('all alerts');
+    const explicitlyResolved = /\bresolved alerts?\b/.test(text);
+    const unresolvedOnly = !explicitlyResolved && !text.includes('acknowledged') && !text.includes('all alerts');
     const filtered = context.alerts.filter(alert => (!severity || alert.severity === severity) && (!unresolvedOnly || !alert.resolved));
     return result('LIST_ALERTS', 'response', { alerts: filtered, severity, unresolvedOnly });
   }

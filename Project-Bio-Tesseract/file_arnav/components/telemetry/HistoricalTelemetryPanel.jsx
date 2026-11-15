@@ -29,6 +29,7 @@ const displayValue = (value, digits = 2) => {
 };
 
 function SeriesChart({ points, metric }) {
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const valid = points.filter(point => Number.isFinite(point.value));
   if (!valid.length) return <p className="historical-telemetry__message">No numeric values are available in this window.</p>;
   const width = 720; const height = 210; const pad = { top: 16, right: 14, bottom: 28, left: 14 };
@@ -37,15 +38,31 @@ function SeriesChart({ points, metric }) {
   const positions = valid.map((point, index) => {
     const x = pad.left + (valid.length < 2 ? (width - pad.left - pad.right) / 2 : index * (width - pad.left - pad.right) / (valid.length - 1));
     const y = pad.top + (high - point.value) / span * (height - pad.top - pad.bottom);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
+    return { x, y, point };
   });
-  const path = positions.map((point, index) => `${index ? 'L' : 'M'} ${point}`).join(' ');
+  const path = positions.map(({ x, y }, index) => `${index ? 'L' : 'M'} ${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   const metadata = TELEMETRY_FIELDS[metric];
-  return <div className="historical-telemetry-chart">
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${metadata.label}, ${valid.length} distinct timestamp points`} preserveAspectRatio="none">
+  const selectNearest = event => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const targetX = ((event.clientX - bounds.left) / bounds.width) * width;
+    let nearest = 0;
+    for (let index = 1; index < positions.length; index += 1) if (Math.abs(positions[index].x - targetX) < Math.abs(positions[nearest].x - targetX)) nearest = index;
+    setSelectedIndex(nearest);
+  };
+  const selected = selectedIndex === null ? null : positions[selectedIndex];
+  const displayTooltipValue = value => Number(value).toLocaleString(undefined, { maximumSignificantDigits: 12 });
+  const onChartKeyDown = event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    setSelectedIndex(current => event.key === 'Home' ? 0 : event.key === 'End' ? positions.length - 1 : current === null ? positions.length - 1 : Math.max(0, Math.min(positions.length - 1, current + (event.key === 'ArrowRight' ? 1 : -1))));
+  };
+  return <div className="historical-telemetry-chart" role="group" aria-label={`${metadata.label} historical chart`} tabIndex={0} onPointerMove={selectNearest} onPointerDown={selectNearest} onPointerLeave={event => { if (event.pointerType !== 'touch') setSelectedIndex(null); }} onKeyDown={onChartKeyDown}>
+    <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" preserveAspectRatio="none">
       {[0.25, 0.5, 0.75].map(y => <line key={y} x1="0" x2={width} y1={pad.top + (height - pad.top - pad.bottom) * y} y2={pad.top + (height - pad.top - pad.bottom) * y} className="historical-telemetry-chart__grid" />)}
-      <path d={path} className="historical-telemetry-chart__line" />
+      <path d={path} pathLength="1" className="historical-telemetry-chart__line" />
+      {selected && <g className="historical-telemetry-chart__selection"><line x1={selected.x} x2={selected.x} y1={pad.top} y2={height - pad.bottom} /><line x1={pad.left} x2={width - pad.right} y1={selected.y} y2={selected.y} /><circle cx={selected.x} cy={selected.y} r="5" /></g>}
     </svg>
+    {selected && <div className="historical-telemetry-chart__tooltip" style={{ left: `${Math.max(8, Math.min(92, selected.x / width * 100))}%` }} role="status" aria-live="polite"><strong>{displayTooltipValue(selected.point.value)} {metadata.unit || ''}</strong><time dateTime={selected.point.timestamp}>{dateTime(selected.point.timestamp)}</time></div>}
     <div className="historical-telemetry-chart__axis"><span>{dateTime(valid[0]?.timestamp)}</span><span>{dateTime(valid[valid.length - 1]?.timestamp)}</span></div>
     <p>{metadata.label}: {displayValue(low)}–{displayValue(high)} {metadata.unit || ''}</p>
   </div>;
@@ -71,12 +88,9 @@ export default function HistoricalTelemetryPanel({ group = 'physiology', mode = 
 
   return <section className={`historical-telemetry${compact ? ' historical-telemetry--compact' : ''}`} aria-labelledby={`historical-telemetry-${group}-title`}>
     <header className="historical-telemetry__header"><div>
-      <p className="overview-eyebrow">SYNTHETIC HISTORICAL TELEMETRY</p>
       <h2 id={`historical-telemetry-${group}-title`}>Historical {group === 'environment' ? 'environment' : 'telemetry'}</h2>
-      <p>Owner-confirmed synthetic dataset · separate from live simulation</p>
     </div><span className={`historical-telemetry__status${visible ? ' is-ready' : ''}`} role="status" aria-live="polite"><i aria-hidden="true" />{stateLabel}</span></header>
 
-    {isLoading && <p className="historical-telemetry__message" role="status">Checking the configured Supabase Data API…</p>}
     {!isLoading && !visible && <div className="historical-telemetry__message" role="status">
       <p>{dataset?.message || 'Historical values are not available.'}</p>
       {dataset?.status === 'not_configured' && <p>Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> in <code>.env.local</code>.</p>}
@@ -85,10 +99,9 @@ export default function HistoricalTelemetryPanel({ group = 'physiology', mode = 
 
     {visible && <>
       <div className="historical-telemetry__meta">
-        <div><span>Rows visible to publishable key</span><strong>{Number(count || 0).toLocaleString()}</strong></div>
+        <div><span>Records</span><strong>{Number(count || 0).toLocaleString()}</strong></div>
         <div><span>First timestamp</span><strong>{dateTime(dataset.stats.earliestTimestamp)}</strong></div>
         <div><span>Latest timestamp</span><strong>{dateTime(dataset.stats.latestTimestamp)}</strong></div>
-        <div><span>Source relation</span><strong>{DATASET_SOURCE.relation.schema}.{DATASET_SOURCE.relation.table}</strong></div>
       </div>
       {dataset.latest?.fields && <div className="historical-telemetry__readings" aria-label="Latest synthetic historical measurements">
         {metrics.map(column => <div key={column}>
@@ -96,21 +109,19 @@ export default function HistoricalTelemetryPanel({ group = 'physiology', mode = 
           <strong>{displayValue(dataset.latest.fields[column])} <small>{TELEMETRY_FIELDS[column].unit || ''}</small></strong>
         </div>)}
       </div>}
-      <p className="historical-telemetry__note">Synthetic historical values are not assigned to a crew member. The owner confirmed the dataset contains no personal health information and approved public read access. Measurements are not clinically validated or physically verified.</p>
       {!compact && <div className="historical-telemetry__chart-panel">
         <div className="historical-telemetry__controls">
           <label>Measurement<select value={metric} onChange={event => setMetric(event.target.value)}>{metrics.map(column => <option key={column} value={column}>{TELEMETRY_FIELDS[column].label} · {TELEMETRY_FIELDS[column].unit || 'index'}</option>)}</select></label>
           <label>Historical window<select value={rangeId} onChange={event => setRangeId(event.target.value)}>{RANGE_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>
         </div>
-        {!DATASET_SOURCE.orderingUniqueVerified && <p className="historical-telemetry__message">Chart is paused until t_seconds uniqueness is verified or a safe database-side aggregation is available.</p>}
+        {!DATASET_SOURCE.orderingUniqueVerified && <p className="historical-telemetry__message">Equal timestamps may not have a stable relative order.</p>}
         {chart.status === 'loading' && <p className="historical-telemetry__message" role="status">Loading timestamp-filtered records…</p>}
         {chart.status === 'empty' && <p className="historical-telemetry__message">{chart.message}</p>}
         {chart.message && chart.status !== 'empty' && chart.status !== 'loading' && <p className="historical-telemetry__message" role="alert">{chart.message}</p>}
         {chart.status === 'ready' && series.length > 0 && <SeriesChart points={series} metric={metric} />}
-        {chart.status === 'ready' && <p className="historical-telemetry__note">{Number(chart.matchedRecordCount).toLocaleString()} matched · {Number(chart.sampledRecordCount).toLocaleString()} chart samples. Duplicate exact timestamps are averaged; no assumed sampling interval is applied.</p>}
+        {chart.status === 'ready' && <p className="historical-telemetry__note">{Number(chart.matchedRecordCount).toLocaleString()} records · {Number(chart.sampledRecordCount).toLocaleString()} points</p>}
       </div>}
       {compact && <button type="button" className="historical-telemetry__action" onClick={() => onNavigate?.('biomonitor')}>Open historical Bio-Monitor <span aria-hidden="true">→</span></button>}
     </>}
-    <p className="historical-telemetry__disclosure">Historical stored records only. Not a live sensor feed, medical assessment, or real spacecraft connection.</p>
   </section>;
 }
