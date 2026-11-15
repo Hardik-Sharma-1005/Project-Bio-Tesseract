@@ -3,217 +3,181 @@
 import React from 'react';
 import LiveEcgChart from './LiveEcgChart';
 
-export default function BioMonitorSection({ activeAstronaut, crew = [], onSelectAstronaut }) {
-  const hr = activeAstronaut?.hr || 72;
-  const spo2 = activeAstronaut?.spo2 || 98.4;
-  const bpSys = activeAstronaut?.bpSys || 118;
-  const bpDia = activeAstronaut?.bpDia || 76;
-  const respRate = activeAstronaut?.respRate || 14;
-  const stress = activeAstronaut?.stress || 18;
+const displayValue = (value, decimals = 0) => (
+  Number.isFinite(value) ? Number(value).toFixed(decimals).replace(/\.0$/, '') : '—'
+);
 
-  const map = Math.round((2 * bpDia + bpSys) / 3);
+const getStatusTone = (status) => {
+  if (status === 'Nominal') return 'nominal';
+  if (status === 'Warning') return 'warning';
+  if (status === 'Critical') return 'critical';
+  return 'unknown';
+};
+
+export default function BioMonitorSection({ activeAstronaut, crew = [], onSelectAstronaut }) {
+  const hr = activeAstronaut?.hr;
+  const spo2 = activeAstronaut?.spo2;
+  const bpSys = activeAstronaut?.bpSys;
+  const bpDia = activeAstronaut?.bpDia;
+  const respRate = activeAstronaut?.respRate;
+  const stress = activeAstronaut?.stress;
+  const map = Number.isFinite(bpSys) && Number.isFinite(bpDia)
+    ? Math.round((2 * bpDia + bpSys) / 3)
+    : undefined;
+  const pulsePressure = Number.isFinite(bpSys) && Number.isFinite(bpDia)
+    ? bpSys - bpDia
+    : undefined;
+  const statusTone = getStatusTone(activeAstronaut?.status);
+  const warningCrew = crew.filter((member) => member.status === 'Warning');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* ── Section Header ── */}
-      <div className="section-header">
+    <section className="biomonitor-section" aria-labelledby="biomonitor-title">
+      <header className="biomonitor-page-heading">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.25rem' }}>🫀</span>
-            <h2 className="font-orbitron" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-              CARDIOVASCULAR BIO-MONITOR &amp; ECG
-            </h2>
-            <span className="cyber-badge cyber-badge-emerald">CONTINUOUS SYNC</span>
-          </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-            Real-time multi-lead electrocardiography, PPG pulse wave analysis, and hemodynamic metrics under microgravity.
-          </p>
+          <p className="overview-eyebrow">PHYSIOLOGY <span aria-hidden="true">/</span> CREW TELEMETRY</p>
+          <h1 id="biomonitor-title">Bio-Monitor</h1>
+          <p className="biomonitor-page-heading__description">A simulated view of crew cardiovascular and respiratory telemetry.</p>
         </div>
-      </div>
+        <div className={`biomonitor-status biomonitor-status--${statusTone}`} role="status" aria-live="polite">
+          <span className="biomonitor-status__symbol" aria-hidden="true">
+            {statusTone === 'nominal' ? '✓' : statusTone === 'warning' ? '!' : statusTone === 'critical' ? '×' : '—'}
+          </span>
+          <span>
+            <span className="biomonitor-status__label">SELECTED CREW STATUS</span>
+            <span className="biomonitor-status__value">{activeAstronaut?.status || 'Unknown'}</span>
+          </span>
+        </div>
+      </header>
 
-      {/* ── Subject Switcher Strip ── */}
-      <div className="hud-panel" style={{ padding: '14px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      {warningCrew.length > 0 && (
+        <div className="biomonitor-anomaly-note" role="status">
+          <span className="biomonitor-anomaly-note__mark" aria-hidden="true">!</span>
+          <span>
+            <strong>SIMULATED ANOMALY</strong>
+            <span> Warning status is active for {warningCrew.map((member) => member.name).join(', ')}.</span>
+          </span>
+        </div>
+      )}
+
+      <section className="biomonitor-crew-context" aria-labelledby="biomonitor-crew-title">
+        <div className="biomonitor-crew-context__heading">
           <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>MONITORED CREW MEMBER: </span>
-            <strong style={{ fontSize: '0.92rem', color: '#fff' }}>{activeAstronaut?.name}</strong>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>({activeAstronaut?.role})</span>
+            <p className="overview-eyebrow">MONITORING SUBJECT</p>
+            <h2 id="biomonitor-crew-title">{activeAstronaut?.name || 'Crew member unavailable'}</h2>
+            <p>{activeAstronaut ? `${activeAstronaut.id} · ${activeAstronaut.role}` : 'Select an available crew member.'}</p>
           </div>
-
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {crew.map((member) => {
-              const isSelected = member.id === activeAstronaut?.id;
-              return (
-                <button
-                  key={member.id}
-                  onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
-                  className={`hud-btn ${isSelected ? 'hud-btn-primary' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: '0.78rem' }}
-                >
-                  <strong>{member.initials}</strong> — {member.name.split(' ').slice(1).join(' ')}
-                </button>
-              );
-            })}
-          </div>
+          <span className={`biomonitor-crew-context__state biomonitor-crew-context__state--${statusTone}`}>
+            <span aria-hidden="true">{statusTone === 'nominal' ? '✓' : statusTone === 'warning' ? '!' : statusTone === 'critical' ? '×' : '—'}</span>
+            {activeAstronaut?.status?.toUpperCase() || 'UNKNOWN'}
+          </span>
         </div>
-      </div>
+        <div className="biomonitor-crew-options" role="group" aria-label="Select monitored crew member">
+          {crew.map((member) => {
+            const selected = member.id === activeAstronaut?.id;
+            const tone = getStatusTone(member.status);
+            return (
+              <button
+                key={member.id}
+                type="button"
+                className={`biomonitor-crew-option${selected ? ' biomonitor-crew-option--selected' : ''}`}
+                aria-pressed={selected}
+                aria-label={`Monitor ${member.name}, ${member.role}, telemetry ${member.status}`}
+                onClick={() => onSelectAstronaut?.(member.id)}
+              >
+                <span className="biomonitor-crew-option__initials" aria-hidden="true">{member.initials}</span>
+                <span className="biomonitor-crew-option__copy">
+                  <span className="biomonitor-crew-option__name">{member.name}</span>
+                  <span className="biomonitor-crew-option__role">{member.role}</span>
+                </span>
+                <span className={`biomonitor-crew-option__status biomonitor-crew-option__status--${tone}`}>
+                  <span aria-hidden="true">{tone === 'nominal' ? '✓' : tone === 'warning' ? '!' : tone === 'critical' ? '×' : '—'}</span>
+                  {member.status.toUpperCase()}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-      {/* ── Main Two-Column Layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '24px' }} className="biomonitor-grid">
-        {/* Left Column: Primary ECG Chart and Big Vitals */}
-        <div className="hud-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 className="font-orbitron" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-              CONTINUOUS CARDIAC WAVEFORM
-            </h3>
-            <span className="font-mono" style={{ fontSize: '0.76rem', color: 'var(--hud-cyan)' }}>
-              Sampling: 250 Hz
-            </span>
+      <div className="biomonitor-workspace">
+        <section className="biomonitor-waveform-panel" aria-labelledby="biomonitor-waveform-title">
+          <div className="biomonitor-panel-heading">
+            <div>
+              <p className="overview-eyebrow">PROCEDURAL WAVEFORM DISPLAY</p>
+              <h2 id="biomonitor-waveform-title">Cardiac &amp; pulse signals</h2>
+            </div>
+            <span className="biomonitor-subject-tag">{activeAstronaut?.id || 'NO SUBJECT'}</span>
           </div>
-
           <LiveEcgChart
             heartRate={hr}
             spO2={spo2}
             bpSys={bpSys}
             bpDia={bpDia}
             respRate={respRate}
+            statusTone={statusTone}
           />
-        </div>
+        </section>
 
-        {/* Right Column: Reference Intervals & Autonomic Data */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Card 1: Electrophysiological Intervals */}
-          <div className="hud-panel" style={{ padding: '22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: 'var(--hud-cyan)', margin: 0 }}>
-                CARDIAC INTERVALS &amp; TIMING
-              </h4>
-              <span className="cyber-badge cyber-badge-emerald font-mono" style={{ fontSize: '0.65rem' }}>
-                NORMAL
-              </span>
+        <aside className="biomonitor-reference-column" aria-label="Illustrative and derived parameters">
+          <section className="biomonitor-reference-panel" aria-labelledby="biomonitor-intervals-title">
+            <div className="biomonitor-reference-heading">
+              <div>
+                <p className="overview-eyebrow">STATIC DEMONSTRATION EXAMPLES</p>
+                <h2 id="biomonitor-intervals-title">ECG intervals</h2>
+              </div>
+              <span className="biomonitor-example-tag">FIXED</span>
             </div>
+            <dl className="biomonitor-interval-list">
+              <div><dt>QT / QTc interval</dt><dd>392 / 418 <span>ms</span></dd></div>
+              <div><dt>PR interval</dt><dd>158 <span>ms</span></dd></div>
+              <div><dt>QRS duration</dt><dd>86 <span>ms</span></dd></div>
+              <div><dt>ST segment deviation</dt><dd>+0.02 <span>mV</span></dd></div>
+            </dl>
+            <p className="biomonitor-reference-note">Fixed illustrative values; not measured, crew-specific, or clinically assessed.</p>
+          </section>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div>
-                  <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>QT / QTc Interval</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ventricular depolarization to repolarization</div>
-                </div>
-                <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
-                  392 / 418 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div>
-                  <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>PR Interval</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>AV nodal conduction time</div>
-                </div>
-                <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
-                  158 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div>
-                  <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>QRS Duration</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ventricular depolarization spread</div>
-                </div>
-                <div className="font-mono" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>
-                  86 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ms</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
-                <div>
-                  <div style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>ST-Segment Deviation</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ischemic marker threshold</div>
-                </div>
-                <div className="font-mono" style={{ fontSize: '0.9rem', color: 'var(--hud-emerald)', fontWeight: 600 }}>
-                  +0.02 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>mV</span>
-                </div>
+          <section className="biomonitor-reference-panel" aria-labelledby="biomonitor-hemodynamics-title">
+            <div className="biomonitor-reference-heading">
+              <div>
+                <p className="overview-eyebrow">DEMO PARAMETERS</p>
+                <h2 id="biomonitor-hemodynamics-title">Hemodynamic examples</h2>
               </div>
             </div>
-          </div>
+            <dl className="biomonitor-hemodynamic-list">
+              <div><dt>Cardiac output <span>fixed example</span></dt><dd>5.4 <small>L/min</small></dd></div>
+              <div><dt>Stroke volume <span>fixed example</span></dt><dd>75 <small>mL</small></dd></div>
+              <div><dt>Mean arterial pressure <span>derived from demo BP</span></dt><dd>{displayValue(map)} <small>mmHg</small></dd></div>
+              <div><dt>Pulse pressure <span>derived from demo BP</span></dt><dd>{displayValue(pulsePressure)} <small>mmHg</small></dd></div>
+            </dl>
+          </section>
 
-          {/* Card 2: Hemodynamic Outputs */}
-          <div className="hud-panel" style={{ padding: '22px' }}>
-            <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: 'var(--hud-emerald)', margin: '0 0 14px 0' }}>
-              HEMODYNAMIC PARAMETERS
-            </h4>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="metric-card">
-                <span className="label">Cardiac Output</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-cyan)' }}>
-                  5.4 <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>L/min</span>
-                </span>
+          <section className="biomonitor-stress-panel" aria-labelledby="biomonitor-stress-title">
+            <div className="biomonitor-stress-panel__heading">
+              <div>
+                <p className="overview-eyebrow">SIMULATION INPUT</p>
+                <h2 id="biomonitor-stress-title">Stress index</h2>
               </div>
-
-              <div className="metric-card">
-                <span className="label">Stroke Volume</span>
-                <span className="value font-orbitron">
-                  75 <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mL</span>
-                </span>
-              </div>
-
-              <div className="metric-card">
-                <span className="label">Mean Arterial (MAP)</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-violet)' }}>
-                  {map} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mmHg</span>
-                </span>
-              </div>
-
-              <div className="metric-card">
-                <span className="label">Pulse Pressure</span>
-                <span className="value font-orbitron" style={{ color: 'var(--hud-amber)' }}>
-                  {bpSys - bpDia} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>mmHg</span>
-                </span>
-              </div>
+              <p>{displayValue(stress)}<span>%</span></p>
             </div>
-          </div>
-
-          {/* Card 3: Autonomic Balance */}
-          <div className="hud-panel" style={{ padding: '22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h4 className="font-orbitron" style={{ fontSize: '0.88rem', color: 'var(--text-primary)', margin: 0 }}>
-                AUTONOMIC TONE BALANCE
-              </h4>
-              <span className="font-mono" style={{ fontSize: '0.75rem', color: stress > 50 ? 'var(--hud-crimson)' : 'var(--hud-emerald)' }}>
-                Stress Flux: {stress}%
-              </span>
+            <div
+              className="biomonitor-stress-track"
+              role="progressbar"
+              aria-label="Illustrative stress simulation input"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Number.isFinite(stress) ? stress : undefined}
+              aria-valuetext={Number.isFinite(stress) ? `${stress} percent, simulation input` : 'Unavailable'}
+            >
+              <span style={{ width: `${Number.isFinite(stress) ? Math.min(100, Math.max(0, stress)) : 0}%` }} />
             </div>
-
-            <div style={{ margin: '10px 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                <span>Parasympathetic (Vagal)</span>
-                <span>Sympathetic</span>
-              </div>
-              <div className="telemetry-bar-bg" style={{ height: '7px' }}>
-                <div
-                  className="telemetry-bar-fill"
-                  style={{
-                    width: `${Math.min(100, Math.max(10, 100 - stress))}%`,
-                    background: stress > 50 ? 'var(--hud-crimson)' : 'var(--hud-emerald)'
-                  }}
-                />
-              </div>
-            </div>
-
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: '8px 0 0 0' }}>
-              Cephalad microgravity fluid shift is compensated. Autonomic baroreflex sensitivity within nominal mission bounds.
-            </p>
-          </div>
-        </div>
+            <p>Demonstration input only. No autonomic or baroreflex assessment is performed.</p>
+          </section>
+        </aside>
       </div>
 
-      <style>{`
-        @media (max-width: 1080px) {
-          .biomonitor-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </div>
+      <p className="biomonitor-disclosure">
+        Simulated measurements only · SpO₂ is blood oxygen saturation, separate from suit oxygen telemetry. No physical sensors are connected; these values are not clinical measurements.
+      </p>
+    </section>
   );
 }
