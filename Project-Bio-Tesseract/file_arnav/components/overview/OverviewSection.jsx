@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useTheme } from '../theme/ThemeProvider';
+import HistoricalTelemetryPanel from '../telemetry/HistoricalTelemetryPanel';
 
 const formatValue = (value, digits = 0) => {
   if (!Number.isFinite(value)) return '—';
@@ -23,10 +24,18 @@ const getAlertTone = (severity, resolved) => {
   return 'unknown';
 };
 
+const getSubsystemDestination = (subsystem) => {
+  if (['Cardio-Bio', 'Bio-Core'].includes(subsystem)) return { id: 'biomonitor', label: 'Open Bio-Monitor' };
+  if (subsystem === 'PLSS') return { id: 'lifesupport', label: 'Open Life Support' };
+  return null;
+};
+
 export default function OverviewSection({
   crew = [],
   activeAstronaut,
   alerts = [],
+  selectedAlert,
+  onSelectAlert,
   onAcknowledge,
   onSelectAstronaut,
   missionStatus = 'CAUTION',
@@ -49,12 +58,10 @@ export default function OverviewSection({
   const cautionCount = activeAlerts.filter((alert) => alert.severity === 'CAUTION').length;
   const warningCrew = crew.filter((member) => member.status === 'Warning');
   const nominalCrewCount = crew.filter((member) => member.status === 'Nominal').length;
-  const o2Readings = crew.map((member) => member.o2).filter(Number.isFinite);
-  const oxygenRange = o2Readings.length
-    ? `${formatValue(Math.min(...o2Readings))}–${formatValue(Math.max(...o2Readings))}%`
-    : '—';
   const anomalyAlert = alerts.find((alert) => alert.severity === 'CRITICAL' && !alert.resolved);
-  const anomalyOwner = warningCrew[0];
+  const anomalyOwner = anomalyAlert?.crewId ? crew.find(member => member.id === anomalyAlert.crewId) : null;
+  const selectedAlertCrew = selectedAlert?.crewId ? crew.find(member => member.id === selectedAlert.crewId) : null;
+  const selectedAlertDestination = getSubsystemDestination(selectedAlert?.subsystem);
 
   // Procedural ECG preview. The waveform remains a display simulation, not a sensor feed.
   useEffect(() => {
@@ -156,255 +163,147 @@ export default function OverviewSection({
     };
   }, [hr, theme]);
 
+  const navigateForAlert = () => {
+    if (!selectedAlertDestination) return;
+    if (selectedAlertCrew) onSelectAstronaut?.(selectedAlertCrew.id);
+    onNavigate?.(selectedAlertDestination.id);
+  };
+
   return (
-    <section className="mission-overview" aria-labelledby="mission-overview-title">
-      <header className="overview-page-heading">
+    <section className="mission-overview overview-v2" aria-labelledby="mission-overview-title">
+      <header className="overview-v2-heading">
         <div>
           <p className="overview-eyebrow">MISSION OPERATIONS <span aria-hidden="true">/</span> SITUATIONAL AWARENESS</p>
           <h1 id="mission-overview-title">Mission overview</h1>
-          <p className="overview-page-heading__description">Crew health and life-support telemetry at a glance.</p>
+          <p>Shared crew and subsystem picture · demonstration environment</p>
         </div>
-        <div className={`overview-mission-status overview-mission-status--${missionTone}`} role="status" aria-live="polite">
-          <span className="overview-mission-status__symbol" aria-hidden="true">
-            {missionTone === 'nominal' ? '✓' : missionTone === 'warning' ? '!' : missionTone === 'critical' ? '×' : '—'}
-          </span>
-          <span>
-            <span className="overview-mission-status__label">MISSION STATUS</span>
-            <span className="overview-mission-status__value">{missionStatus}</span>
-          </span>
+        <div className={`overview-v2-status overview-v2-status--${missionTone}`} role="status" aria-live="polite">
+          <span className="overview-v2-status__dot" aria-hidden="true" />
+          <span><small>MISSION STATE</small><strong>{missionStatus}</strong></span>
+          <span className="overview-v2-status__sim">SIMULATED</span>
         </div>
       </header>
 
       {isAlarmActive && (
-        <section className="overview-anomaly-banner" aria-labelledby="overview-anomaly-title">
-          <span className="overview-anomaly-banner__mark" aria-hidden="true">!</span>
-          <div className="overview-anomaly-banner__copy">
-            <p className="overview-anomaly-banner__eyebrow">SIMULATED ANOMALY ACTIVE</p>
-            <h2 id="overview-anomaly-title">{anomalyAlert?.title || 'Physiological telemetry anomaly'}</h2>
-            <p>
-              {anomalyAlert?.subsystem || 'Crew telemetry'}
-              {anomalyAlert?.time ? ` · ${anomalyAlert.time}` : ''}
-              {anomalyOwner ? ` · Affects ${anomalyOwner.name}` : ''}
-            </p>
-          </div>
-          <button type="button" className="overview-anomaly-banner__action" onClick={() => onToggleAlarm?.()}>
-            Resolve simulation
-          </button>
-        </section>
+        <div className="overview-v2-anomaly" role="status">
+          <span className="overview-v2-anomaly__icon" aria-hidden="true">!</span>
+          <span><strong>Demonstration anomaly active</strong><small>{anomalyOwner?.name || 'Crew association unavailable'} · {anomalyAlert?.subsystem || 'Cardio-Bio'}</small></span>
+          <button type="button" onClick={() => onToggleAlarm?.()}>Resolve simulation</button>
+        </div>
       )}
 
-      <section className="overview-at-a-glance" aria-label="Mission health summary">
-        <article className="overview-summary-item overview-summary-item--crew">
-          <span className="overview-summary-item__index">01</span>
-          <div>
-            <h2>Crew telemetry</h2>
-            <p className="overview-summary-item__value">{nominalCrewCount}<span> / {crew.length || '—'}</span></p>
-            <p className="overview-summary-item__detail">
-              {warningCrew.length
-                ? `${warningCrew.length} crew member${warningCrew.length === 1 ? '' : 's'} need attention`
-                : crew.length > 0 && nominalCrewCount === crew.length ? 'Crew readings nominal' : 'Crew condition unavailable'}
-            </p>
-          </div>
-        </article>
-        <article className={`overview-summary-item${activeAlerts.length ? ' overview-summary-item--alerts' : ''}${criticalCount ? ' overview-summary-item--critical' : ''}`}>
-          <span className="overview-summary-item__index">02</span>
-          <div>
-            <h2>Open conditions</h2>
-            <p className="overview-summary-item__value">{activeAlerts.length}</p>
-            <p className="overview-summary-item__detail">
-              {criticalCount ? `${criticalCount} critical` : 'No critical conditions'}
-              {cautionCount ? ` · ${cautionCount} caution` : ''}
-            </p>
-          </div>
-        </article>
-        <article className="overview-summary-item overview-summary-item--systems">
-          <span className="overview-summary-item__index">03</span>
-          <div>
-            <h2>Crew oxygen range</h2>
-            <p className="overview-summary-item__value">{oxygenRange}</p>
-            <p className="overview-summary-item__detail">Pack telemetry · simulated</p>
-          </div>
-        </article>
+      <HistoricalTelemetryPanel group="physiology" mode="compact" onNavigate={onNavigate} />
+
+      <section className="overview-command-strip" aria-label="Mission command summary">
+        <div className="overview-command-strip__lead"><small>CREW ON MANIFEST</small><strong>{crew.length}<span> members</span></strong><p>{nominalCrewCount} nominal{warningCrew.length ? ` · ${warningCrew.length} attention` : ''}</p></div>
+        <div><small>OPEN CONDITIONS</small><strong className={criticalCount ? 'is-critical' : ''}>{activeAlerts.length}</strong><p>{criticalCount} critical · {cautionCount} caution</p></div>
+        <div><small>SELECTED CREW</small><strong className="overview-command-strip__selected">{activeAstronaut?.id || '—'}</strong><p>{activeAstronaut?.name || 'No crew selected'}</p></div>
+        <div><small>EVENT RECORD</small><strong>{alerts.length}</strong><p>Recorded demonstration events</p></div>
       </section>
 
-      <section className="overview-crew-section" aria-labelledby="overview-crew-title">
-        <div className="overview-section-heading">
-          <div>
-            <p className="overview-eyebrow">CREW STATUS</p>
-            <h2 id="overview-crew-title">Crew roster</h2>
+      <div className="overview-ops-grid">
+        <div className="overview-crew-workspace">
+          <section className="overview-v2-panel overview-crew-picker" aria-labelledby="overview-crew-title">
+            <div className="overview-v2-panel__heading">
+              <div><p className="overview-eyebrow">PERSONNEL / SHARED SELECTION</p><h2 id="overview-crew-title">Crew roster</h2></div>
+              <span>{crew.length} crew</span>
+            </div>
+            <div className="overview-crew-list" role="group" aria-label="Select crew member">
+              {crew.map((member) => {
+                const isSelected = member.id === activeAstronaut?.id;
+                const isWarning = member.status === 'Warning';
+                return (
+                  <button key={member.id} type="button" className={`overview-crew-row${isSelected ? ' is-selected' : ''}${isWarning ? ' is-warning' : ''}`} aria-pressed={isSelected} onClick={() => onSelectAstronaut?.(member.id)}>
+                    <span className="overview-crew-row__initials" aria-hidden="true">{member.initials}</span>
+                    <span className="overview-crew-row__identity"><strong>{member.name}</strong><small>{member.role}</small></span>
+                    <span className={`overview-crew-row__status${isWarning ? ' is-warning' : ''}`}><i aria-hidden="true" />{member.status || 'Unknown'}</span>
+                    <span className="overview-crew-row__preview"><span>{formatValue(member.hr)} <small>bpm</small></span><span>{formatValue(member.spo2, 1)}<small>% SpO₂</small></span></span>
+                    <span className="overview-crew-row__arrow" aria-hidden="true">{isSelected ? '●' : '›'}</span>
+                  </button>
+                );
+              })}
+              {!crew.length && <p className="overview-v2-empty">No crew records are available.</p>}
+            </div>
+          </section>
+
+          <section className="overview-v2-panel overview-selected-crew" aria-labelledby="overview-subject-title">
+            <div className="overview-v2-panel__heading overview-selected-crew__heading">
+              <div><p className="overview-eyebrow">SELECTED CREW TELEMETRY · SIMULATED</p><h2 id="overview-subject-title">{activeAstronaut?.name || 'No crew member selected'}</h2><p>{activeAstronaut ? `${activeAstronaut.id} · ${activeAstronaut.role}` : 'Crew readings unavailable'}</p></div>
+              {activeAstronaut && <span className={`overview-v2-crew-status${activeAstronaut.status === 'Warning' ? ' is-warning' : ''}`}><i aria-hidden="true" />{activeAstronaut.status}</span>}
+            </div>
+            <dl className="overview-v2-readings">
+              <div className="is-primary"><dt>Heart rate</dt><dd>{formatValue(hr)} <small>bpm</small></dd></div>
+              <div><dt>Blood oxygen · SpO₂</dt><dd>{formatValue(spo2, 1)}<small>%</small></dd></div>
+              <div><dt>Blood pressure</dt><dd>{formatValue(bpSys)}/{formatValue(bpDia)}<small> mmHg</small></dd></div>
+              <div><dt>Respiration</dt><dd>{formatValue(respRate)}<small> / min</small></dd></div>
+              <div><dt>Stress input</dt><dd>{formatValue(activeAstronaut?.stress)}<small>%</small></dd></div>
+              <div><dt>Suit pressure</dt><dd>{formatValue(suitP, 1)}<small> PSI</small></dd></div>
+              <div><dt>Suit oxygen reserve</dt><dd>{formatValue(o2)}<small>%</small></dd></div>
+            </dl>
+            <p className="overview-v2-disclosure">Demonstration values only. SpO₂ is blood oxygen saturation; suit oxygen is a separate reserve measurement.</p>
+            <div className="overview-v2-crew-actions">
+              <button type="button" onClick={() => onNavigate?.('biomonitor')}>Open Bio-Monitor <span aria-hidden="true">→</span></button>
+              <button type="button" onClick={() => onNavigate?.('lifesupport')}>Suit systems <span aria-hidden="true">→</span></button>
+              <button type="button" onClick={() => onNavigate?.('medical')}>Medical Advisor <span aria-hidden="true">→</span></button>
+            </div>
+          </section>
+        </div>
+
+        <section className="overview-v2-panel overview-event-workspace" aria-labelledby="overview-events-title">
+          <div className="overview-v2-panel__heading">
+            <div><p className="overview-eyebrow">OPERATIONAL EVENTS / SHARED LOG</p><h2 id="overview-events-title">Alert timeline</h2></div>
+            <button type="button" className="overview-v2-text-action" onClick={() => onNavigate?.('crew')}>Full event log <span aria-hidden="true">→</span></button>
           </div>
-          <p>Select a crew member to inspect their telemetry.</p>
-        </div>
+          {alerts.length ? (
+            <ol className="overview-event-list" aria-label="Mission events">
+              {alerts.map(alert => {
+                const tone = getAlertTone(alert.severity, alert.resolved);
+                const selected = selectedAlert?.id === alert.id;
+                return (
+                  <li key={alert.id} className={`overview-event${selected ? ' is-selected' : ''} overview-event--${tone}`}>
+                    <button type="button" className="overview-event__select" onClick={() => onSelectAlert?.(alert.id)} aria-pressed={selected}>
+                      <span className="overview-event__mark" aria-hidden="true">{alert.resolved ? '✓' : alert.severity === 'CRITICAL' ? '!' : alert.severity === 'CAUTION' ? '△' : '·'}</span>
+                      <span className="overview-event__copy"><strong>{alert.title || 'Untitled event'}</strong><small>{alert.subsystem || 'Subsystem unspecified'}{alert.time ? ` · ${alert.time}` : ''}</small></span>
+                      <span className="overview-event__severity">{alert.resolved ? 'RESOLVED' : alert.severity || 'UNKNOWN'}</span>
+                    </button>
+                    {!alert.acknowledged && onAcknowledge && <button className="overview-event__ack" type="button" onClick={() => onAcknowledge(alert.id)} aria-label={`Acknowledge ${alert.title}`}>Acknowledge</button>}
+                    {alert.acknowledged && <span className="overview-event__acknowledged">✓ Acknowledged</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : <p className="overview-v2-empty">No mission events have been recorded.</p>}
 
-        <div className="overview-crew-grid">
-          {crew.map((member) => {
-            const isSelected = member.id === activeAstronaut?.id;
-            const isWarning = member.status === 'Warning';
-            return (
-              <button
-                type="button"
-                key={member.id}
-                className={`overview-crew-member${isSelected ? ' overview-crew-member--selected' : ''}${isWarning ? ' overview-crew-member--warning' : ''}`}
-                aria-pressed={isSelected}
-                aria-label={`Select ${member.name}, ${member.role}, ${member.status}, heart rate ${formatValue(member.hr)} beats per minute, blood oxygen ${formatValue(member.spo2, 1)} percent`}
-                onClick={() => onSelectAstronaut?.(member.id)}
-              >
-                <span className="overview-crew-member__topline">
-                  <span className="overview-crew-member__initials" aria-hidden="true">{member.initials}</span>
-                  <span className={`overview-crew-member__status overview-crew-member__status--${isWarning ? 'warning' : 'nominal'}`}>
-                    <span aria-hidden="true">{isWarning ? '!' : '✓'}</span>{isWarning ? 'ATTENTION' : 'NOMINAL'}
-                  </span>
-                  {isSelected && <span className="overview-crew-member__selected">SELECTED</span>}
-                </span>
-                <span className="overview-crew-member__name">{member.name}</span>
-                <span className="overview-crew-member__role">{member.id} <span aria-hidden="true">·</span> {member.role}</span>
-                <span className="overview-crew-member__readings">
-                  <span><span>HR</span><strong>{formatValue(member.hr)} <small>bpm</small></strong></span>
-                  <span><span>SpO₂</span><strong>{formatValue(member.spo2, 1)}<small>%</small></strong></span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="overview-detail-grid">
-        <div className="overview-detail-primary">
-          <section className="overview-panel overview-subject-panel" aria-labelledby="overview-subject-title">
-            <div className="overview-panel-heading">
-              <div>
-                <p className="overview-eyebrow">SELECTED CREW TELEMETRY</p>
-                <h2 id="overview-subject-title">{activeAstronaut?.name || 'No crew member selected'}</h2>
-                {activeAstronaut?.role && <p>{activeAstronaut.role}</p>}
-              </div>
-              {activeAstronaut && (
-                <span className={`overview-text-status overview-text-status--${activeAstronaut.status === 'Warning' ? 'warning' : 'nominal'}`}>
-                  <span aria-hidden="true">{activeAstronaut.status === 'Warning' ? '!' : '✓'}</span>
-                  {activeAstronaut.status.toUpperCase()}
-                </span>
-              )}
-            </div>
-            <dl className="overview-vitals-grid">
-              <div className="overview-vital overview-vital--heart">
-                <dt>Heart rate</dt>
-                <dd>{formatValue(hr)} <span>bpm</span></dd>
-              </div>
-              <div className="overview-vital">
-                <dt>Blood oxygen · SpO₂</dt>
-                <dd>{formatValue(spo2, 1)}<span>%</span></dd>
-              </div>
-              <div className="overview-vital">
-                <dt>Blood pressure</dt>
-                <dd>{formatValue(bpSys)}/{formatValue(bpDia)} <span>mmHg</span></dd>
-              </div>
-              <div className="overview-vital">
-                <dt>Respiration</dt>
-                <dd>{formatValue(respRate)} <span>/ min</span></dd>
-              </div>
-            </dl>
-            <p className="overview-data-note">Simulated crew readings · demonstration data, not medical measurements.</p>
+          <section className="overview-alert-inspector" aria-labelledby="overview-inspector-title" aria-live="polite">
+            <div className="overview-alert-inspector__topline"><p className="overview-eyebrow">EVENT INSPECTOR</p>{selectedAlert && <span className={`overview-inspector-state overview-inspector-state--${getAlertTone(selectedAlert.severity, selectedAlert.resolved)}`}>{selectedAlert.resolved ? 'RESOLVED' : selectedAlert.severity || 'UNKNOWN'}</span>}</div>
+            {selectedAlert ? (
+              <>
+                <h3 id="overview-inspector-title">{selectedAlert.title || 'Untitled event'}</h3>
+                <dl className="overview-inspector-details">
+                  <div><dt>Event ID</dt><dd>{selectedAlert.id}</dd></div>
+                  <div><dt>Subsystem</dt><dd>{selectedAlert.subsystem || 'Not specified'}</dd></div>
+                  {selectedAlert.time && <div><dt>Recorded time</dt><dd>{selectedAlert.time}</dd></div>}
+                  <div><dt>Acknowledgement</dt><dd>{selectedAlert.acknowledged ? 'Acknowledged' : 'Awaiting acknowledgement'}</dd></div>
+                  <div><dt>Lifecycle</dt><dd>{selectedAlert.resolved ? 'Resolved' : 'Active'}</dd></div>
+                </dl>
+                <p className="overview-inspector-association">{selectedAlertCrew ? <>Associated crew: <strong>{selectedAlertCrew.name}</strong> <span>· simulated anomaly record</span></> : 'No crew association is recorded for this event.'}</p>
+                <div className="overview-inspector-actions">
+                  {!selectedAlert.acknowledged && onAcknowledge && <button type="button" onClick={() => onAcknowledge(selectedAlert.id)}>Acknowledge event</button>}
+                  {selectedAlertDestination && <button type="button" onClick={navigateForAlert}>{selectedAlertDestination.label} <span aria-hidden="true">→</span></button>}
+                  <button type="button" className="is-secondary" onClick={() => onNavigate?.('crew')}>Open event log <span aria-hidden="true">→</span></button>
+                </div>
+                {selectedAlert.severity === 'CRITICAL' && selectedAlert.crewId && !selectedAlert.resolved && <p className="overview-inspector-resolution">Resolve this demonstration event using the mission header control.</p>}
+              </>
+            ) : <div className="overview-inspector-empty"><span aria-hidden="true">◎</span><h3 id="overview-inspector-title">Select an event to inspect</h3><p>Event details and supported crew context will appear here.</p></div>}
           </section>
-
-          <section className="overview-panel overview-ecg-panel" aria-labelledby="overview-ecg-title">
-            <div className="overview-panel-heading overview-panel-heading--compact">
-              <div>
-                <p className="overview-eyebrow">PROCEDURAL DISPLAY</p>
-                <h2 id="overview-ecg-title">ECG waveform preview</h2>
-              </div>
-              <button type="button" className="overview-text-link" onClick={() => onNavigate?.('biomonitor')}>
-                Open Bio-Monitor <span aria-hidden="true">→</span>
-              </button>
-            </div>
-            <figure className="overview-ecg-figure">
-              <div className="overview-ecg-canvas-wrap">
-                <canvas
-                  ref={canvasRef}
-                  width={700}
-                  height={180}
-                  role="img"
-                  aria-label={`Procedural ECG waveform preview for ${activeAstronaut?.name || 'selected crew member'}; simulation at ${formatValue(hr)} beats per minute`}
-                >
-                  Procedural ECG waveform preview. This is simulated display data.
-                </canvas>
-              </div>
-              <figcaption><span>Waveform uses selected crew heart-rate input</span><span>Not a sensor feed</span></figcaption>
-            </figure>
-          </section>
-        </div>
-
-        <aside className="overview-detail-secondary" aria-label="Life support and medical tools">
-          <section className="overview-panel overview-life-support" aria-labelledby="overview-life-support-title">
-            <div className="overview-panel-heading overview-panel-heading--compact">
-              <div>
-                <p className="overview-eyebrow">SELECTED CREW MEMBER</p>
-                <h2 id="overview-life-support-title">Suit telemetry</h2>
-              </div>
-              <button type="button" className="overview-text-link" onClick={() => onNavigate?.('lifesupport')}>
-                Details <span aria-hidden="true">→</span>
-              </button>
-            </div>
-            <dl className="overview-system-readings">
-              <div><dt>Suit pressure</dt><dd>{formatValue(suitP, 1)} <span>PSI</span></dd></div>
-              <div><dt>Primary oxygen</dt><dd>{formatValue(o2)}<span>%</span></dd></div>
-            </dl>
-            <p className="overview-data-note">Crew pack telemetry · simulated values.</p>
-          </section>
-
-          <section className="overview-advisor-callout" aria-labelledby="overview-advisor-title">
-            <div className="overview-advisor-callout__eyebrow">SIMULATION TOOL</div>
-            <h2 id="overview-advisor-title">Medical Advisor</h2>
-            <p>Open the procedural advisory demonstration. It does not provide a clinical diagnosis.</p>
-            <button type="button" className="overview-advisor-callout__action" onClick={() => onNavigate?.('medical')}>
-              Open advisor <span aria-hidden="true">→</span>
-            </button>
-          </section>
-        </aside>
+        </section>
       </div>
 
-      <section className="overview-alerts" aria-labelledby="overview-alerts-title">
-        <div className="overview-section-heading overview-alerts__heading">
-          <div>
-            <p className="overview-eyebrow">OPERATIONAL EVENTS</p>
-            <h2 id="overview-alerts-title">Recent alerts</h2>
-          </div>
-          <button type="button" className="overview-text-link" onClick={() => onNavigate?.('crew')}>
-            View all events <span aria-hidden="true">→</span>
-          </button>
-        </div>
-
-        {alerts.length ? (
-          <ul className="overview-alert-list">
-            {alerts.slice(0, 4).map((alert) => {
-              const tone = getAlertTone(alert.severity, alert.resolved);
-              return (
-                <li key={alert.id} className={`overview-alert overview-alert--${tone}`}>
-                  <span className="overview-alert__severity">{alert.resolved ? 'RESOLVED' : alert.severity || 'UNKNOWN'}</span>
-                  <div className="overview-alert__content">
-                    <p className="overview-alert__title">{alert.title}</p>
-                    <p className="overview-alert__meta">
-                      <span>{alert.subsystem}</span>
-                      {alert.time && <><span aria-hidden="true">·</span><time>{alert.time}</time></>}
-                    </p>
-                  </div>
-                  <div className="overview-alert__action">
-                    {alert.acknowledged ? (
-                      <span className="overview-alert__acknowledged"><span aria-hidden="true">✓</span> Acknowledged</span>
-                    ) : onAcknowledge ? (
-                      <button type="button" onClick={() => onAcknowledge(alert.id)} aria-label={`Acknowledge alert: ${alert.title}`}>
-                        Acknowledge
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="overview-alerts__empty">No mission events have been recorded.</p>
-        )}
+      <section className="overview-v2-waveform" aria-label="Procedural waveform preview">
+        <div><p className="overview-eyebrow">DISPLAY SIMULATION</p><strong>Procedural ECG preview</strong><span>Uses the selected crew heart-rate input · not a sensor feed</span></div>
+        <canvas ref={canvasRef} width={700} height={180} role="img" aria-label={`Procedural ECG preview for ${activeAstronaut?.name || 'selected crew member'}, simulated at ${formatValue(hr)} beats per minute`}>Procedural ECG waveform preview. Simulated display data.</canvas>
       </section>
-
-      <p className="overview-simulation-disclosure">Demonstration simulation · No spacecraft hardware, live sensors, or clinical systems are connected.</p>
+      <p className="overview-simulation-disclosure">No spacecraft hardware, live sensors, orbital tracking, or clinical systems are connected.</p>
     </section>
   );
 }
