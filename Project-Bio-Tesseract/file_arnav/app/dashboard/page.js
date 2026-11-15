@@ -46,6 +46,7 @@ export default function Home() {
   const [alarmAlertId, setAlarmAlertId] = useState(null);
   const [alerts, setAlerts] = useState(INITIAL_ALERTS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const isAlarmActive = alarmAstronautId !== null;
 
@@ -59,20 +60,6 @@ export default function Home() {
       : 'NOMINAL';
 
   // ── Telemetry simulation — 2500 ms drift ───────────────────────────
-  useEffect(() => {
-    if (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-    let frame = 0;
-    const moveGlow = (event) => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        document.documentElement.style.setProperty('--pointer-x', `${event.clientX}px`);
-        document.documentElement.style.setProperty('--pointer-y', `${event.clientY}px`);
-      });
-    };
-    window.addEventListener('pointermove', moveGlow, { passive: true });
-    return () => { window.removeEventListener('pointermove', moveGlow); cancelAnimationFrame(frame); };
-  }, []);
-
   useEffect(() => {
     const interval = setInterval(() => {
       const telemetryDrift = new Map(INITIAL_CREW.map(({ id }) => [id, {
@@ -192,7 +179,7 @@ export default function Home() {
         onToggleCopilot={handleCopilotToggle}
       />
 
-      <div className={`main-content-wrapper${sidebarOpen ? ' sidebar-open' : ''}`}>
+      <div className={`main-content-wrapper${sidebarOpen ? ' sidebar-open' : ''}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -200,6 +187,8 @@ export default function Home() {
           crew={crew}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(value => !value)}
         />
 
         {/* Mobile overlay — clicking it closes sidebar */}

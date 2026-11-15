@@ -2,6 +2,7 @@
 
 import React from 'react';
 import HistoricalTelemetryPanel from '../telemetry/HistoricalTelemetryPanel';
+import CrewPortrait from '../crew/CrewPortrait';
 
 const formatValue = (value, decimals = 0) => (
   Number.isFinite(value) ? Number(value).toFixed(decimals).replace(/\.0$/, '') : '—'
@@ -24,11 +25,8 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
     <section className="life-support-section" aria-labelledby="life-support-title">
       <header className="life-support-page-heading">
         <div>
-          <p className="overview-eyebrow">LIFE SUPPORT <span aria-hidden="true">/</span> CREW SUIT TELEMETRY</p>
           <h1 id="life-support-title">Life Support</h1>
-          <p className="life-support-page-heading__description">Crew suit pressure and oxygen reserve from the demonstration model.</p>
         </div>
-        <span className="life-support-demo-tag"><span aria-hidden="true">◌</span> SIMULATED SUIT DATA</span>
       </header>
 
       {warningCrew.length > 0 && (
@@ -36,16 +34,15 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
           <span className="life-support-crew-warning__mark" aria-hidden="true">!</span>
           <p>
             <strong>CREW BIOMETRIC WARNING</strong>
-            <span> {warningCrew.map((member) => member.name).join(', ')} has a simulated crew warning. This is not a suit-system fault.</span>
+            <span>{warningCrew.map((member) => member.name).join(', ')}</span>
           </p>
         </div>
       )}
 
       <section className="life-support-selected" aria-labelledby="life-support-selected-title">
         <div className="life-support-selected__identity">
-          <span className="life-support-selected__initials" aria-hidden="true">{activeAstronaut?.initials || '—'}</span>
+          <CrewPortrait member={activeAstronaut} className="life-support-selected__portrait" />
           <div>
-            <p className="overview-eyebrow">SELECTED SUIT RECORD</p>
             <h2 id="life-support-selected-title">{activeAstronaut?.name || 'Crew member unavailable'}</h2>
             <p>{activeAstronaut ? `${activeAstronaut.id} · ${activeAstronaut.role}` : 'Select an available crew member.'}</p>
           </div>
@@ -59,7 +56,6 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
       <section className="life-support-resource-panel" aria-labelledby="life-support-resources-title">
         <div className="life-support-panel-heading">
           <div>
-            <p className="overview-eyebrow">PERSONAL LIFE-SUPPORT SYSTEM</p>
             <h2 id="life-support-resources-title">Suit resources</h2>
           </div>
           <span className="life-support-record-id">{activeAstronaut?.id || 'NO SUBJECT'}</span>
@@ -69,7 +65,6 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
           <div className="life-support-reading life-support-reading--pressure">
             <dt><span className="life-support-reading__index">01</span> Suit internal pressure</dt>
             <dd>{formatValue(suitPressure, 1)} <span>PSI</span></dd>
-            <p>Selected crew suit record · demonstration value</p>
           </div>
           <div className="life-support-reading life-support-reading--oxygen">
             <dt><span className="life-support-reading__index">02</span> Suit oxygen reserve</dt>
@@ -85,7 +80,6 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
             >
               <span style={{ width: `${Number.isFinite(suitOxygenReserve) ? Math.max(0, Math.min(100, suitOxygenReserve)) : 0}%` }} />
             </div>
-            <p>Reserve percentage · not cabin oxygen concentration or blood SpO₂</p>
           </div>
         </dl>
       </section>
@@ -93,7 +87,6 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
       <section className="life-support-crew-section" aria-labelledby="life-support-crew-title">
         <div className="life-support-section-heading">
           <div>
-            <p className="overview-eyebrow">CREW COMPARISON</p>
             <h2 id="life-support-crew-title">Suit telemetry roster</h2>
           </div>
           <p>Select a row to change the monitored suit record.</p>
@@ -119,7 +112,7 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
                 onClick={() => onSelectAstronaut?.(member.id)}
               >
                 <span className="life-support-roster__identity">
-                  <span className="life-support-roster__initials" aria-hidden="true">{member.initials}</span>
+                  <CrewPortrait member={member} className="life-support-roster__portrait" />
                   <span>
                     <span className="life-support-roster__name">{member.name}</span>
                     <span className="life-support-roster__role">{member.id} · {member.role}</span>
@@ -139,9 +132,6 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
 
       <HistoricalTelemetryPanel group="environment" />
 
-      <p className="life-support-data-scope">
-        Demonstration data only. The current model exposes crew suit pressure and oxygen reserve; cabin-atmosphere measurements and life-support subsystem fault states are not modeled here. Crew status is sourced from the separate biometric simulation.
-      </p>
     </section>
   );
 }

@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { COMMAND_REGISTRY, METRICS, SECTION_LABELS, recognizeCommand } from '../../lib/copilot/commands';
-
-const STARTER_MESSAGE = {
-  id: 'copilot-welcome',
-  role: 'assistant',
-  text: 'I can inspect this simulation, retrieve supported crew readings, navigate the dashboard, and request confirmation before existing operations. I use local rules and current application state; I am not a generative AI or a medical system.',
-};
+import { METRICS, SECTION_LABELS, recognizeCommand } from '../../lib/copilot/commands';
 
 const getAlertDestination = (subsystem) => {
   if (['Cardio-Bio', 'Bio-Core'].includes(subsystem)) return 'biomonitor';
@@ -31,18 +25,18 @@ function formatAlert(alert, crew) {
   const state = alert.resolved ? 'resolved' : 'active';
   const acknowledgement = alert.acknowledged ? 'acknowledged' : 'awaiting acknowledgement';
   const associatedCrew = alert.crewId ? crew.find(member => member.id === alert.crewId) : null;
-  return `${alert.title || 'Untitled event'} · ${alert.severity || 'unknown severity'} · ${alert.subsystem || 'subsystem unspecified'} · ${state}, ${acknowledgement}${associatedCrew ? ` · associated crew: ${associatedCrew.name} (simulated anomaly record)` : ' · no crew association recorded'}`;
+  return `${alert.title || 'Untitled event'} · ${alert.severity || 'unknown severity'} · ${alert.subsystem || 'subsystem unspecified'} · ${state}, ${acknowledgement}${associatedCrew ? ` · crew: ${associatedCrew.name}` : ''}`;
 }
 
 function getResponse(command, context) {
   switch (command.intent) {
     case 'MISSION_STATUS':
-      return `Mission status is ${context.missionStatus}. This is the current derived status of the local demonstration.`;
+      return `Mission status: ${context.missionStatus}.`;
     case 'MISSION_SUMMARY': {
       const open = context.alerts.filter(alert => !alert.resolved && ['CRITICAL', 'CAUTION'].includes(alert.severity));
       const critical = open.filter(alert => alert.severity === 'CRITICAL').length;
       const caution = open.filter(alert => alert.severity === 'CAUTION').length;
-      return `Mission state: ${context.missionStatus}. Crew on manifest: ${context.crew.length}. Open caution or critical events: ${open.length} (${critical} critical, ${caution} caution). Selected crew: ${context.activeAstronaut?.name || 'none'}. Selected event: ${context.selectedAlert?.title || 'none'}. Simulated anomaly: ${context.isAlarmActive ? 'active' : 'inactive'}.`;
+      return `Mission state: ${context.missionStatus}. Crew: ${context.crew.length}. Open events: ${open.length} (${critical} critical, ${caution} caution). Crew: ${context.activeAstronaut?.name || 'none'}. Event: ${context.selectedAlert?.title || 'none'}.`;
     }
     case 'CREW_COUNT':
       return `${command.count} crew ${command.count === 1 ? 'member is' : 'members are'} in the current roster.`;
@@ -50,28 +44,28 @@ function getResponse(command, context) {
       return `The current section is ${SECTION_LABELS[command.section] || 'unknown'}.`;
     case 'ANOMALY_STATUS':
       return command.active
-        ? `The simulated anomaly is active for ${command.crewMember?.name || 'a crew member'}. It does not represent a real spacecraft event.`
-        : 'No simulated anomaly is active.';
+        ? `Anomaly active for ${command.crewMember?.name || 'a crew member'}.`
+        : 'No anomaly active.';
     case 'LIST_CREW':
       return command.crew.length
         ? `Current crew roster:\n${command.crew.map(member => `• ${member.name} — ${member.role}; ${member.status || 'unknown status'}`).join('\n')}`
         : 'No crew records are available.';
     case 'SELECTED_CREW':
-      return `Selected crew member: ${command.crewMember.name} (${command.crewMember.id}), ${command.crewMember.role}. Status: ${command.crewMember.status || 'unknown'}. Readings are simulated.`;
+      return `${command.crewMember.name} · ${command.crewMember.id} · ${command.crewMember.role} · ${command.crewMember.status || 'unknown'}.`;
     case 'CREW_READINGS':
-      return `${command.crewMember.name} · simulated readings\nHeart rate: ${displayMetric(command.crewMember, METRICS[0])}\nBlood SpO₂: ${displayMetric(command.crewMember, METRICS[1])}\nBlood pressure: ${displayMetric(command.crewMember, METRICS[2])}\nRespiration: ${displayMetric(command.crewMember, METRICS[3])}\nStress input: ${displayMetric(command.crewMember, METRICS[4])}\nSuit pressure: ${displayMetric(command.crewMember, METRICS[5])}\nSuit oxygen reserve: ${displayMetric(command.crewMember, METRICS[6])}.`;
+      return `${command.crewMember.name}\nHeart rate: ${displayMetric(command.crewMember, METRICS[0])}\nBlood SpO₂: ${displayMetric(command.crewMember, METRICS[1])}\nBlood pressure: ${displayMetric(command.crewMember, METRICS[2])}\nRespiration: ${displayMetric(command.crewMember, METRICS[3])}\nStress input: ${displayMetric(command.crewMember, METRICS[4])}\nSuit pressure: ${displayMetric(command.crewMember, METRICS[5])}\nSuit oxygen reserve: ${displayMetric(command.crewMember, METRICS[6])}.`;
     case 'CREW_METRIC':
-      return `${command.crewMember.name}'s current simulated ${command.metric.label} is ${displayMetric(command.crewMember, command.metric)}.`;
+      return `${command.crewMember.name} · ${command.metric.label}: ${displayMetric(command.crewMember, command.metric)}.`;
     case 'COMPARE_CREW': {
       const [first, second] = command.crewMembers;
-      return `Current simulated ${command.metric.label}: ${first.name}, ${displayMetric(first, command.metric)}; ${second.name}, ${displayMetric(second, command.metric)}. This is a comparison of current demo inputs, not a clinical assessment.`;
+      return `${command.metric.label}: ${first.name}, ${displayMetric(first, command.metric)}; ${second.name}, ${displayMetric(second, command.metric)}.`;
     }
     case 'LIST_ALERTS':
       return command.alerts.length
         ? `${command.severity ? `${command.severity.toLowerCase()} ` : ''}${command.unresolvedOnly ? 'unresolved ' : ''}events (${command.alerts.length}):\n${command.alerts.map(alert => `• ${formatAlert(alert, context.crew)}`).join('\n')}`
         : `There are no ${command.severity ? `${command.severity.toLowerCase()} ` : ''}${command.unresolvedOnly ? 'unresolved ' : ''}events in the current alert collection.`;
     case 'ACKNOWLEDGED_COUNT':
-      return `${command.count} of ${context.alerts.length} recorded events are acknowledged. Acknowledgement and resolution are separate.`;
+      return `${command.count} of ${context.alerts.length} recorded events are acknowledged.`;
     case 'UNRESOLVED_COUNT':
       return `${command.count} recorded events remain unresolved.`;
     case 'INSPECT_ALERT': {
@@ -79,15 +73,15 @@ function getResponse(command, context) {
       const associatedCrew = alert.crewId ? context.crew.find(member => member.id === alert.crewId) : null;
       if (command.field === 'subsystem') return `The selected event concerns ${alert.subsystem || 'an unspecified subsystem'}.`;
       if (command.field === 'severity') return `The selected event severity is ${alert.severity || 'unknown'}. It is ${alert.resolved ? 'resolved' : 'active'} and ${alert.acknowledged ? 'acknowledged' : 'not acknowledged'}.`;
-      if (command.field === 'crew') return associatedCrew ? `Crew association recorded: ${associatedCrew.name} on this simulated anomaly.` : 'No crew association is recorded for the selected event.';
+      if (command.field === 'crew') return associatedCrew ? `Crew: ${associatedCrew.name}.` : 'No crew association is recorded for the selected event.';
       return `Selected event: ${formatAlert(alert, context.crew)}. Event ID: ${alert.id}.`;
     }
     case 'ALERT_ALREADY_ACKNOWLEDGED':
-      return `${command.alert.title} is already acknowledged. Its resolution state is unchanged.`;
+      return `${command.alert.title} is already acknowledged.`;
     case 'ANOMALY_ALREADY_ACTIVE':
-      return 'The simulated anomaly is already active. Resolve the current simulation before starting another.';
+      return 'Anomaly already active. Resolve it before starting another.';
     case 'ANOMALY_NOT_ACTIVE':
-      return 'There is no active simulated anomaly to resolve.';
+      return 'No active anomaly to resolve.';
     case 'NO_SELECTED_CREW':
       return 'No crew member is selected. Select a crew member in the dashboard, or name one in your request.';
     case 'NO_SELECTED_ALERT':
@@ -97,13 +91,13 @@ function getResponse(command, context) {
     case 'AMBIGUOUS_CREW':
       return 'That crew reference matches more than one person. Please use a full name or crew ID.';
     case 'AMBIGUOUS_ALERT':
-      return 'That alert reference matches more than one event. Please use its full title or alert ID.';
+      return 'That alert reference matches more than one event. Please use its alert ID.';
     case 'ALERT_NOT_FOUND':
       return 'I could not find that alert in the current alert collection. Use an existing alert title or ID.';
     case 'UNAVAILABLE_HISTORY':
-      return 'Historical readings and trend records are not available in this simulation. I can report current supported values.';
+      return 'Open Historical Telemetry for stored records.';
     case 'UNSUPPORTED':
-      return 'I can retrieve mission status, current crew readings and alerts, navigate dashboard sections, and request confirmation for existing simulation operations. That request is outside my local command set.';
+      return 'That request is not supported.';
     default:
       return command.question || 'I could not complete that request.';
   }
@@ -127,7 +121,7 @@ export default function MissionCopilot({
   onAcknowledge,
   onToggleAlarm,
 }) {
-  const [messages, setMessages] = useState([STARTER_MESSAGE]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const [pendingVerification, setPendingVerification] = useState(null);
@@ -182,19 +176,19 @@ export default function MissionCopilot({
         const alert = alerts.find(item => item.id === pendingVerification.alertId);
         verified = Boolean(alert?.acknowledged);
         response = verified
-          ? `Acknowledged: ${alert.title}. The event remains ${alert.resolved ? 'resolved' : 'active'}; acknowledgement did not change resolution.`
+        ? `Acknowledged: ${alert.title}.`
           : 'The alert no longer exists or was not acknowledged, so no success was recorded.';
       } else if (pendingVerification.type === 'startAnomaly') {
         verified = isAlarmActive && alarmAstronautId === pendingVerification.crewId;
         response = verified
-          ? `The simulated anomaly is active for ${crew.find(member => member.id === alarmAstronautId)?.name || 'the selected crew member'}. The associated event is available in the shared alert log.`
-          : 'The simulated anomaly did not start for the requested crew member.';
+          ? `Anomaly active for ${crew.find(member => member.id === alarmAstronautId)?.name || 'the selected crew member'}.`
+          : 'Anomaly could not be started for the selected crew member.';
       } else if (pendingVerification.type === 'resolveAnomaly') {
         const alert = alerts.find(item => item.id === pendingVerification.alertId);
         verified = !isAlarmActive && Boolean(alert?.resolved);
         response = verified
-          ? `The simulated anomaly was resolved. Its alert remains recorded as ${alert.acknowledged ? 'acknowledged' : 'unacknowledged'} and resolved.`
-          : 'The simulated anomaly could not be resolved because its target changed or disappeared.';
+        ? 'Anomaly resolved.'
+          : 'Anomaly could not be resolved because its target changed or disappeared.';
       }
       if (response) {
         setMessages(prev => [...prev, makeMessage('assistant', response)]);
@@ -223,10 +217,10 @@ export default function MissionCopilot({
           ? crew.find(member => member.id === command.action.crewId)
           : alerts.find(alert => alert.id === command.action.alertId);
       const confirmationText = command.action.type === 'acknowledgeAlert'
-        ? `You are about to acknowledge “${target?.title || command.action.title}” (${target?.severity || 'unknown severity'}). This records operator receipt but will not resolve the event. Proceed?`
+        ? `Acknowledge “${target?.title || command.action.title}” (${target?.severity || 'unknown severity'})?`
         : command.action.type === 'startAnomaly'
-          ? `You are about to start the existing simulated anomaly for ${target?.name || 'the selected crew member'}. It will alter demonstration readings and add one simulated critical alert. No hardware is contacted. Proceed?`
-          : `You are about to resolve the active simulated anomaly for ${context.alarmAstronaut?.name || 'the affected crew member'}. This restores its demo readings and resolves its associated event. Proceed?`;
+          ? `Start the anomaly for ${target?.name || 'the selected crew member'}? Displayed readings will change and a critical event will be added.`
+          : `Resolve the anomaly for ${context.alarmAstronaut?.name || 'the affected crew member'}? Readings will return to baseline and the event will be resolved.`;
       return appendResponse(confirmationText);
     }
 
@@ -284,7 +278,7 @@ export default function MissionCopilot({
     if (action.type === 'startAnomaly') {
       if (isAlarmActive || !crew.some(member => member.id === action.crewId)) {
         operationLock.current = false;
-        return appendResponse('The simulation target changed or is unavailable. No anomaly was started.');
+        return appendResponse('The selected crew member changed or is unavailable. No anomaly was started.');
       }
       onSelectAstronaut?.(action.crewId);
       onToggleAlarm?.(action.crewId);
@@ -318,19 +312,19 @@ export default function MissionCopilot({
     if (pendingVerification) return;
     setPendingConfirmation(null);
     operationLock.current = false;
-    setMessages([STARTER_MESSAGE]);
+    setMessages([]);
     setInput('');
   };
 
   return (
     <>
-      <button type="button" className={`copilot-backdrop${isOpen ? ' is-open' : ''}`} aria-label="Close Mission Copilot" onClick={onClose} tabIndex={isOpen ? 0 : -1} aria-hidden={!isOpen} />
-      <aside id="mission-copilot-panel" className={`mission-copilot${isOpen ? ' is-open' : ''}`} hidden={!isOpen} aria-label="Local rule-based Mission Copilot" aria-describedby="mission-copilot-registry-note">
+      <button type="button" className={`copilot-backdrop${isOpen ? ' is-open' : ''}`} aria-label="Close BioAstra" onClick={onClose} tabIndex={isOpen ? 0 : -1} aria-hidden={!isOpen} />
+      <aside id="mission-copilot-panel" className={`mission-copilot${isOpen ? ' is-open' : ''}`} hidden={!isOpen} aria-label="BioAstra mission assistant">
         <header className="mission-copilot__header">
-          <span className="mission-copilot__mark" aria-hidden="true">⌘</span>
-          <div className="mission-copilot__heading"><p>MISSION COPILOT</p><span>LOCAL RULE-BASED HELPER</span></div>
+          <span className="mission-copilot__mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.8 13.8 9l6.2 3-6.2 2-1.8 7-1.8-7L4 12l6.2-3L12 2.8Z"/><path d="m19 3 .7 2.3L22 6l-2.3.7L19 9l-.7-2.3L16 6l2.3-.7L19 3Z"/></svg></span>
+          <div className="mission-copilot__heading"><p>BioAstra</p></div>
           <button type="button" className="mission-copilot__reset" onClick={resetConversation} disabled={Boolean(pendingVerification)} aria-label="Reset conversation" title="Reset conversation">↺</button>
-          <button type="button" className="mission-copilot__close" onClick={onClose} aria-label="Close Mission Copilot">×</button>
+          <button type="button" className="mission-copilot__close" onClick={onClose} aria-label="Close BioAstra">×</button>
         </header>
 
         <section className="mission-copilot__context" aria-label="Current mission context">
@@ -339,10 +333,10 @@ export default function MissionCopilot({
           <span><small>EVENT</small><strong>{selectedAlert?.id || 'None selected'}</strong></span>
         </section>
 
-        <div className="mission-copilot__messages" ref={messagesRef} role="log" aria-label="Mission Copilot conversation" aria-live="polite" aria-relevant="additions">
+        <div className="mission-copilot__messages" ref={messagesRef} role="log" aria-label="BioAstra conversation" aria-live="polite" aria-relevant="additions">
           {messages.map(message => (
             <article className={`copilot-message copilot-message--${message.role}`} key={message.id}>
-              <span className="copilot-message__speaker">{message.role === 'user' ? 'YOU' : 'COPILOT · LOCAL RULES'}</span>
+              <span className="copilot-message__speaker">{message.role === 'user' ? 'YOU' : 'BIOASTRA'}</span>
               <p>{message.text}</p>
             </article>
           ))}
@@ -350,7 +344,6 @@ export default function MissionCopilot({
           {pendingConfirmation && (
             <section className="copilot-confirmation" aria-label="Confirm operation">
               <div><span aria-hidden="true">!</span><strong>Confirmation required</strong></div>
-              <p>Review the request above. The operation will use the recorded target and recheck it before execution.</p>
               <div className="copilot-confirmation__actions">
                 <button type="button" onClick={confirmOperation}>Confirm</button>
                 <button type="button" className="is-cancel" onClick={cancelOperation}>Cancel</button>
@@ -360,7 +353,6 @@ export default function MissionCopilot({
         </div>
 
         <div className="mission-copilot__suggestions" aria-label="Suggested commands">
-          <span>TRY</span>
           {suggestions.map(suggestion => <button type="button" key={suggestion} disabled={Boolean(pendingConfirmation || pendingVerification)} onClick={() => processInput(suggestion)}>{suggestion}</button>)}
         </div>
 
@@ -379,8 +371,6 @@ export default function MissionCopilot({
           <button type="submit" aria-label="Send command" disabled={!input.trim() || Boolean(pendingConfirmation || pendingVerification)}>Send <span aria-hidden="true">↑</span></button>
           <small>Enter to send · Shift + Enter for a new line</small>
         </form>
-        <p className="mission-copilot__disclosure">Local rules only · no external AI, services, sensors, or spacecraft controls</p>
-        <span id="mission-copilot-registry-note" className="dashboard-visually-hidden">The local command registry contains {COMMAND_REGISTRY.length} bounded command families.</span>
       </aside>
     </>
   );
