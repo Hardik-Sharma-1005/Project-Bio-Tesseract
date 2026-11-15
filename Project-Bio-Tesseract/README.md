@@ -44,8 +44,8 @@ npm run start
 
 ## Vercel
 
-Connect the `mayanksr2728/Project-Bio-Tesseract` GitHub repository. Set Root Directory to `Project-Bio-Tesseract/file_arnav`, framework to Next.js and production branch to `main`. Use the lockfile-based install and `npm run build`; keep the default Next.js output directory. The frontend requires no environment variables and does not depend on files outside its Root Directory.
+Connect the `Hardik-Sharma-1005/Project-Bio-Tesseract` GitHub repository. Set Root Directory to `Project-Bio-Tesseract/file_arnav`, framework to Next.js and production branch to `main`. Use the lockfile-based install and `npm run build`; keep the default Next.js output directory. The frontend requires no environment variables and does not depend on files outside its Root Directory.
 
 ## Project layout
 
-The frontend source and package files are in `file_arnav/`. `app/page.js` owns shared crew, anomaly, alert, mission-status and section-selection state. Components are grouped by shell, overview, biomonitor, life support, medical advisor and crew responsibilities. The separate repository-root Node.js, database, telemetry and ML parts are outside this frontend application.
+The frontend source and package files are in `file_arnav/`. `app/page.js` renders the public landing page; `app/dashboard/page.js` owns shared crew, anomaly, alert, mission-status and section-selection state. Components are grouped by shell, overview, biomonitor, life support, medical advisor and crew responsibilities. The separate repository-root Node.js, database, telemetry and ML parts are outside this frontend application.

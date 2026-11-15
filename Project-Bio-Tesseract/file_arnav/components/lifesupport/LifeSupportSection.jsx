@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import HistoricalTelemetryPanel from '../telemetry/HistoricalTelemetryPanel';
 
 const formatValue = (value, decimals = 0) => (
   Number.isFinite(value) ? Number(value).toFixed(decimals).replace(/\.0$/, '') : '—'
@@ -135,6 +136,8 @@ export default function LifeSupportSection({ activeAstronaut, crew = [], onSelec
           })}
         </div>
       </section>
+
+      <HistoricalTelemetryPanel group="environment" />
 
       <p className="life-support-data-scope">
         Demonstration data only. The current model exposes crew suit pressure and oxygen reserve; cabin-atmosphere measurements and life-support subsystem fault states are not modeled here. Crew status is sourced from the separate biometric simulation.

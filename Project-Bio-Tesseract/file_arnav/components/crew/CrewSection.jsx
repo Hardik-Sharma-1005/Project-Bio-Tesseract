@@ -21,7 +21,9 @@ export default function CrewSection({
   activeAstronaut,
   onSelectAstronaut,
   alerts = [],
-  onAcknowledge
+  onAcknowledge,
+  selectedAlert,
+  onSelectAlert
 }) {
   const activeAlerts = alerts.filter(alert => !alert.resolved && ['CRITICAL', 'CAUTION'].includes(alert.severity));
   const criticalCount = activeAlerts.filter(alert => alert.severity === 'CRITICAL').length;
@@ -128,9 +130,11 @@ export default function CrewSection({
                 <li key={alert.id} className={`crew-alert-event crew-alert-event--${tone}`}>
                   <span className="crew-alert-event__severity"><span aria-hidden="true">{tone === 'critical' ? '!' : tone === 'warning' ? '△' : tone === 'nominal' ? '✓' : '·'}</span>{severityLabel}</span>
                   <div className="crew-alert-event__body">
-                    <div className="crew-alert-event__title-row"><h3>{alert.title}</h3><span className={`crew-alert-lifecycle${alert.resolved ? ' crew-alert-lifecycle--resolved' : ''}`}>{alert.resolved ? 'Resolved' : 'Active'}</span></div>
-                    <p className="crew-alert-event__metadata"><span>{alert.id}</span><span>{alert.subsystem}</span>{alert.time && <time>{alert.time}</time>}</p>
-                    <p className="crew-alert-event__association">System: {alert.subsystem || 'Not specified'} <span aria-hidden="true">·</span> Crew linkage is not recorded on this event.</p>
+                    <button type="button" className="crew-alert-select" aria-pressed={selectedAlert?.id === alert.id} onClick={() => onSelectAlert?.(alert.id)}>
+                      <span className="crew-alert-event__title-row"><h3>{alert.title}</h3><span className={`crew-alert-lifecycle${alert.resolved ? ' crew-alert-lifecycle--resolved' : ''}`}>{alert.resolved ? 'Resolved' : 'Active'}</span></span>
+                      <span className="crew-alert-event__metadata"><span>{alert.id}</span><span>{alert.subsystem}</span>{alert.time && <time>{alert.time}</time>}</span>
+                      <span className="crew-alert-event__association">System: {alert.subsystem || 'Not specified'} <span aria-hidden="true">·</span> {alert.crewId ? `Crew association recorded: ${crew.find(member => member.id === alert.crewId)?.name || 'crew record unavailable'}.` : 'Crew linkage is not recorded on this event.'}</span>
+                    </button>
                   </div>
                   <div className="crew-alert-event__action">
                     {alert.acknowledged ? (
@@ -146,6 +150,15 @@ export default function CrewSection({
           </ol>
         ) : (
           <div className="crew-empty-state crew-empty-state--alerts"><strong>No alert events recorded.</strong><span>There are no current or historical events in the shared demonstration log.</span></div>
+        )}
+
+        {selectedAlert && (
+          <aside className="crew-selected-alert" aria-label="Selected shared event details" aria-live="polite">
+            <p className="crew-eyebrow">SHARED EVENT SELECTION</p>
+            <h3>{selectedAlert.title}</h3>
+            <p>{selectedAlert.id} · {selectedAlert.subsystem || 'Subsystem unspecified'} · {selectedAlert.resolved ? 'Resolved' : 'Active'} · {selectedAlert.acknowledged ? 'Acknowledged' : 'Awaiting acknowledgement'}</p>
+            <p>{selectedAlert.crewId ? `Associated crew: ${crew.find(member => member.id === selectedAlert.crewId)?.name || 'Crew record unavailable'} (simulated anomaly).` : 'No crew association is recorded for this event.'}</p>
+          </aside>
         )}
 
         {alerts.some(alert => alert.severity === 'CRITICAL' && !alert.resolved) && (

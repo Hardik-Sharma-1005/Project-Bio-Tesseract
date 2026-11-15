@@ -23,6 +23,8 @@ export default function Navbar({
   onToggleAlarm,
   onMenuToggle,
   isSidebarOpen = false,
+  isCopilotOpen = false,
+  onToggleCopilot,
 }) {
   const [met, setMet] = useState({ h: 42, m: 0, s: 0 });
   const [utc, setUtc] = useState('');
@@ -106,6 +108,17 @@ export default function Navbar({
         </button>
 
         <ThemeToggle className="theme-toggle--dashboard" />
+
+        <button
+          type="button"
+          className={`dashboard-copilot-button${isCopilotOpen ? ' is-active' : ''}`}
+          onClick={() => onToggleCopilot?.()}
+          aria-expanded={isCopilotOpen}
+          aria-controls="mission-copilot-panel"
+          aria-label={isCopilotOpen ? 'Close Mission Copilot' : 'Open Mission Copilot'}
+        >
+          <span aria-hidden="true">⌘</span><span>Copilot</span>
+        </button>
 
         <button
           type="button"

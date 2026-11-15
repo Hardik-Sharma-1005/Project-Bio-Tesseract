@@ -2,6 +2,7 @@
 
 import React from 'react';
 import LiveEcgChart from './LiveEcgChart';
+import HistoricalTelemetryPanel from '../telemetry/HistoricalTelemetryPanel';
 
 const displayValue = (value, decimals = 0) => (
   Number.isFinite(value) ? Number(value).toFixed(decimals).replace(/\.0$/, '') : '—'
@@ -174,6 +175,8 @@ export default function BioMonitorSection({ activeAstronaut, crew = [], onSelect
           </section>
         </aside>
       </div>
+
+      <HistoricalTelemetryPanel group="physiology" />
 
       <p className="biomonitor-disclosure">
         Simulated measurements only · SpO₂ is blood oxygen saturation, separate from suit oxygen telemetry. No physical sensors are connected; these values are not clinical measurements.

@@ -12,6 +12,7 @@ import BioMonitorSection from '../../components/biomonitor/BioMonitorSection';
 import LifeSupportSection from '../../components/lifesupport/LifeSupportSection';
 import MedicalSection from '../../components/medical/MedicalSection';
 import CrewSection from '../../components/crew/CrewSection';
+import MissionCopilot from '../../components/copilot/MissionCopilot';
 
 // =====================================================================
 // SHARED DATA CONSTANTS
@@ -40,14 +41,17 @@ export default function Home() {
   const [crew, setCrew] = useState(INITIAL_CREW);
   const [activeAstronautId, setActiveAstronautId] = useState('AST-01');
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedAlertId, setSelectedAlertId] = useState('ALT-103');
   const [alarmAstronautId, setAlarmAstronautId] = useState(null);
   const [alarmAlertId, setAlarmAlertId] = useState(null);
   const [alerts, setAlerts] = useState(INITIAL_ALERTS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const isAlarmActive = alarmAstronautId !== null;
 
   // Derived: active astronaut object
   const activeAstronaut = crew.find(c => c.id === activeAstronautId) || crew[0];
+  const selectedAlert = alerts.find(alert => alert.id === selectedAlertId) || null;
   const missionStatus = alarmAstronautId || alerts.some(alert => alert.severity === 'CRITICAL' && !alert.resolved)
     ? 'CRITICAL'
     : alerts.some(alert => alert.severity === 'CAUTION' && !alert.resolved) || crew.some(member => member.status === 'Warning')
@@ -101,12 +105,14 @@ export default function Home() {
   }, [alarmAstronautId]);
 
   // ── Alarm toggle handler ───────────────────────────────────────────
-  const handleToggleAlarm = () => {
+  const handleToggleAlarm = (requestedAstronautId) => {
     if (alarmAstronautId === null) {
-      const affectedAstronautId = activeAstronautId;
+      const affectedAstronautId = requestedAstronautId || activeAstronautId;
+      if (!crew.some(member => member.id === affectedAstronautId)) return;
       const newAlertId = `ALT-${Date.now()}`;
       setAlarmAstronautId(affectedAstronautId);
       setAlarmAlertId(newAlertId);
+      setSelectedAlertId(newAlertId);
       // Add critical alert to the top of the feed
       setAlerts(prev => [
         {
@@ -114,6 +120,7 @@ export default function Home() {
           severity: 'CRITICAL',
           title: 'SIMULATED TACHYCARDIA & METABOLIC ELEVATION',
           subsystem: 'Cardio-Bio',
+          crewId: affectedAstronautId,
           time: new Date().toTimeString().slice(0, 8),
           acknowledged: false,
           resolved: false
@@ -154,7 +161,14 @@ export default function Home() {
   };
 
   // ── Sidebar helpers ────────────────────────────────────────────────
-  const handleMenuToggle = () => setSidebarOpen(prev => !prev);
+  const handleMenuToggle = () => {
+    setCopilotOpen(false);
+    setSidebarOpen(prev => !prev);
+  };
+  const handleCopilotToggle = () => {
+    setSidebarOpen(false);
+    setCopilotOpen(prev => !prev);
+  };
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSidebarOpen(false); // close sidebar on mobile after navigation
@@ -174,6 +188,8 @@ export default function Home() {
         onToggleAlarm={handleToggleAlarm}
         onMenuToggle={handleMenuToggle}
         isSidebarOpen={sidebarOpen}
+        isCopilotOpen={copilotOpen}
+        onToggleCopilot={handleCopilotToggle}
       />
 
       <div className={`main-content-wrapper${sidebarOpen ? ' sidebar-open' : ''}`}>
@@ -199,6 +215,8 @@ export default function Home() {
               crew={crew}
               activeAstronaut={activeAstronaut}
               alerts={alerts}
+              selectedAlert={selectedAlert}
+              onSelectAlert={setSelectedAlertId}
               missionStatus={missionStatus}
               onAcknowledge={handleAcknowledgeAlert}
               onSelectAstronaut={setActiveAstronautId}
@@ -238,10 +256,31 @@ export default function Home() {
               activeAstronaut={activeAstronaut}
               onSelectAstronaut={setActiveAstronautId}
               alerts={alerts}
+              selectedAlert={selectedAlert}
+              onSelectAlert={setSelectedAlertId}
               onAcknowledge={handleAcknowledgeAlert}
             />
           )}
         </main>
+
+        <MissionCopilot
+          isOpen={copilotOpen}
+          onClose={() => setCopilotOpen(false)}
+          crew={crew}
+          activeAstronaut={activeAstronaut}
+          activeTab={activeTab}
+          alerts={alerts}
+          selectedAlert={selectedAlert}
+          missionStatus={missionStatus}
+          isAlarmActive={isAlarmActive}
+          alarmAstronautId={alarmAstronautId}
+          alarmAlertId={alarmAlertId}
+          onSelectAstronaut={setActiveAstronautId}
+          onSelectAlert={setSelectedAlertId}
+          onNavigate={handleTabChange}
+          onAcknowledge={handleAcknowledgeAlert}
+          onToggleAlarm={handleToggleAlarm}
+        />
       </div>
     </div>
   );
