@@ -23,6 +23,7 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
   const stress = activeAstronaut?.stress || 18;
   const spo2 = activeAstronaut?.spo2 || 98.4;
   const name = activeAstronaut?.name || 'Cmdr. Sarah Vance';
+  const telemetryStatus = activeAstronaut?.status || 'Unknown';
 
   useEffect(() => () => {
     scanTimers.current.forEach(clearTimeout);
@@ -61,292 +62,148 @@ export default function MedicalSection({ activeAstronaut, crew = [], onSelectAst
     ];
   };
 
+  const protocols = [
+    { id: 'hydration', code: 'HYD-01', name: 'Hydration pack dispense', detail: 'Simulated hydration protocol' },
+    { id: 'thermal', code: 'THM-02', name: 'LCVG temperature regulate', detail: 'Illustrative adjustment · +0.5°C' },
+    { id: 'oxygen', code: 'OXY-03', name: 'Pre-breathe flush', detail: 'Demonstration · 100% O₂' }
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* ── Section Header ── */}
-      <div className="section-header">
+    <main className="medical-workspace">
+      <header className="medical-page-heading">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.25rem' }}>🧠</span>
-            <h2 className="font-orbitron" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-              AI BIO-DIAGNOSTIC ADVISOR
-            </h2>
-            <span className="cyber-badge cyber-badge-cyan">NEURAL ASSISTANT</span>
-          </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-            Simulated advisor workflow using illustrative inputs. It does not perform clinical risk assessment or diagnosis.
-          </p>
+          <p className="medical-eyebrow">MISSION MEDICINE <span> / </span> DECISION SUPPORT</p>
+          <h1>Medical advisor</h1>
+          <p className="medical-page-heading__description">Review simulated crew inputs, run a demonstration scan, and inspect the recorded output.</p>
         </div>
-      </div>
+        <div className="medical-environment-tag"><span aria-hidden="true" /> Simulation environment</div>
+      </header>
 
-      {/* ── Subject Switcher Bar ── */}
-      <div className="hud-panel" style={{ padding: '14px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      <section className="medical-subject-strip" aria-labelledby="medical-subject-title">
+        <div className="medical-subject-identity">
+          <span className="medical-subject-mark" aria-hidden="true">{activeAstronaut?.initials || 'CR'}</span>
           <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>EVALUATION SUBJECT: </span>
-            <strong style={{ fontSize: '0.92rem', color: '#fff' }}>{name}</strong>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '6px' }}>({activeAstronaut?.role})</span>
+            <p className="medical-eyebrow">CURRENT EVALUATION SUBJECT</p>
+            <h2 id="medical-subject-title">{name}</h2>
+            <p>{activeAstronaut?.role || 'Crew member'} <span>·</span> {activeAstronaut?.id || 'ID unavailable'}</p>
           </div>
+        </div>
+        <div className="medical-subject-status"><span className={`medical-status-dot medical-status-dot--${String(telemetryStatus).toLowerCase()}`} />
+          <span><small>TELEMETRY STATUS</small><strong>{telemetryStatus}</strong></span>
+        </div>
+        <div className="medical-crew-select" aria-label="Select evaluation subject">
+          {crew.map(member => {
+            const isSelected = member.id === activeAstronaut?.id;
+            return (
+              <button key={member.id} type="button" aria-label={`Select ${member.name}`} aria-pressed={isSelected}
+                onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
+                className={`medical-crew-button${isSelected ? ' is-selected' : ''}`}>
+                {member.initials || member.id}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {crew.map((member) => {
-              const isSelected = member.id === activeAstronaut?.id;
-              return (
-                <button
-                  key={member.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => onSelectAstronaut && onSelectAstronaut(member.id)}
-                  className={`hud-btn ${isSelected ? 'hud-btn-primary' : ''}`}
-                  style={{ padding: '5px 12px', fontSize: '0.78rem' }}
-                >
-                  <strong>{member.initials}</strong> — {member.name.split(' ').slice(1).join(' ')}
+      <div className="medical-workspace-grid">
+        <div className="medical-primary-column">
+          <section className="medical-evaluation-panel" aria-labelledby="medical-evaluation-title">
+            <div className="medical-panel-heading">
+              <div><p className="medical-eyebrow">01 / EVALUATION CONTEXT</p><h2 id="medical-evaluation-title">Simulated telemetry inputs</h2></div>
+              <span className="medical-input-label">DEMONSTRATION DATA</span>
+            </div>
+            <div className="medical-input-grid">
+              <div className="medical-input"><span>Heart rate</span><strong>{hr}<small> bpm</small></strong><em>Current crew input</em></div>
+              <div className="medical-input"><span>Blood oxygen</span><strong>{spo2}<small> %</small></strong><em>Current crew input</em></div>
+              <div className="medical-input"><span>Stress</span><strong>{stress}<small> %</small></strong><em>Current crew input</em></div>
+            </div>
+          </section>
+
+          <section className={`medical-scan-panel${simulatingDiagnosis ? ' is-processing' : ''}`} aria-labelledby="medical-scan-title">
+            <div className="medical-scan-panel__topline"><span className="medical-scan-step">02</span><span className="medical-eyebrow">SIMULATED ANALYSIS</span><span className="medical-scan-rule" /></div>
+            <div className="medical-scan-panel__body">
+              <div><h2 id="medical-scan-title">Physiological synthesis</h2><p>Demonstration workflow using the selected crew member’s current illustrative inputs.</p></div>
+              <button type="button" onClick={runDiagnosticScan} disabled={simulatingDiagnosis} className="medical-scan-button">
+                <span aria-hidden="true">{simulatingDiagnosis ? '◌' : '↗'}</span>{simulatingDiagnosis ? 'Processing scan…' : 'Run demonstration scan'}
+              </button>
+            </div>
+            {simulatingDiagnosis ? (
+              <div className="medical-progress" role="status" aria-live="polite">
+                <div className="medical-progress__labels"><span>Processing illustrative telemetry sequence</span><strong>{scanProgress}%</strong></div>
+                <div className="medical-progress__track" role="progressbar" aria-label="Demonstration scan progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={scanProgress}><span style={{ width: `${scanProgress}%` }} /></div>
+              </div>
+            ) : (
+              <div className="medical-scan-ready"><span className="medical-ready-marker" /> Ready for demonstration scan <span>·</span> No external sensors connected</div>
+            )}
+          </section>
+
+          <section className="medical-results" aria-labelledby="medical-results-title">
+            <div className="medical-panel-heading">
+              <div><p className="medical-eyebrow">03 / OUTPUT REVIEW</p><h2 id="medical-results-title">Illustrative scenario results</h2></div>
+              <span className="medical-result-label">NOT A CLINICAL ASSESSMENT</span>
+            </div>
+            <div className="medical-result-narrative">
+              <div className="medical-result-narrative__index">A</div>
+              <div><span className="medical-eyebrow">DEMONSTRATION OBSERVATION</span>
+                <p>{simulatingDiagnosis
+                  ? 'Processing the simulated telemetry sequence. No clinical model or external sensor data is being used.'
+                  : stress > 50
+                    ? `In this simulated scenario, the demonstration heart-rate input is ${hr} bpm and stress input is ${stress}%. The existing example suggests reviewing the hydration protocol; this is not a medical recommendation.`
+                    : `This simulation presents baseline demonstration inputs for ${name}. No clinical thresholds, diagnosis, or medical risk are evaluated.`}</p>
+              </div>
+            </div>
+            <div className="medical-indicator-grid">
+              <div className="medical-indicator"><span>Decompression scenario index</span><strong>0.02%</strong><small>Fixed illustrative value · not calculated</small></div>
+              <div className="medical-indicator"><span>Hypoxia scenario index</span><strong>0.00%</strong><small>Fixed illustrative value · not calculated</small></div>
+              <div className="medical-indicator medical-indicator--input"><span>Cognitive workload input</span><strong>{stress}%</strong><small>{stress > 50 ? 'Elevated demonstration input' : 'Baseline demonstration input'}</small></div>
+            </div>
+            <p className="medical-result-footnote">Scenario indices are static examples. They are not derived from this crew member’s telemetry and do not indicate probability or clinical risk.</p>
+          </section>
+
+          <section className="medical-protocols" aria-labelledby="medical-protocol-title">
+            <div className="medical-panel-heading">
+              <div><p className="medical-eyebrow">04 / OPERATOR CONTROLS</p><h2 id="medical-protocol-title">Demonstration protocols</h2></div>
+              <span className="medical-protocol-label">SIMULATED SELECTION</span>
+            </div>
+            <p className="medical-protocol-intro">Select a protocol to record a local demonstration state. No physical action is initiated.</p>
+            <div className="medical-protocol-list">
+              {protocols.map(protocol => (
+                <button key={protocol.id} type="button" aria-pressed={activeProtocol === protocol.id}
+                  onClick={() => setActiveProtocol(protocol.id)} className={`medical-protocol-option${activeProtocol === protocol.id ? ' is-selected' : ''}`}>
+                  <span className="medical-protocol-code">{protocol.code}</span><span className="medical-protocol-copy"><strong>{protocol.name}</strong><small>{protocol.detail}</small></span>
+                  <span className="medical-protocol-choice">{activeProtocol === protocol.id ? 'Selected' : 'Select'}</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Two-Column Layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '24px' }} className="med-section-grid">
-        {/* Left Column: Assessment, Risk Indices & Protocol Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-          {/* Diagnostic Assessment Panel */}
-          <div className="hud-panel" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <h3 className="font-orbitron" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  PHYSIOLOGICAL SYNTHESIS REPORT
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Evaluated at: 14:28 UTC • Subject: {name}
-                </div>
-              </div>
-
-              <button
-                onClick={runDiagnosticScan}
-                disabled={simulatingDiagnosis}
-                className="hud-btn hud-btn-emerald"
-                style={{ padding: '6px 14px', fontSize: '0.8rem' }}
-              >
-                {simulatingDiagnosis ? `🔄 Analyzing Sensors (${scanProgress}%)...` : '⚡ Run Neural Scan'}
-              </button>
-            </div>
-
-            {/* Scanning Progress Bar */}
-            {simulatingDiagnosis && (
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--hud-cyan)', marginBottom: '4px' }}>
-                  <span>Synthesizing continuous bio-telemetry stream...</span>
-                  <span className="font-mono">{scanProgress}%</span>
-                </div>
-                <div className="telemetry-bar-bg" style={{ height: '6px' }}>
-                  <div className="telemetry-bar-fill" style={{ width: `${scanProgress}%`, background: 'var(--hud-cyan)' }} />
-                </div>
-              </div>
-            )}
-
-            {/* Assessment Narrative */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '6px',
-              padding: '18px 20px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span className="font-orbitron" style={{ fontSize: '0.88rem', color: 'var(--hud-cyan)' }}>
-                  CLINICAL SYNTHESIS
-                </span>
-                <span className={`cyber-badge ${stress > 50 ? 'cyber-badge-crimson' : 'cyber-badge-emerald'}`}>
-                  {stress > 50 ? 'ELEVATED METABOLIC LOAD' : 'STABLE HOMEOSTASIS'}
-                </span>
-              </div>
-
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0 }}>
-                {simulatingDiagnosis ? (
-                  <span style={{ color: 'var(--hud-cyan)' }}>
-                    Aggregating PPG waveform morphology, Galvanic Skin Response (GSR), suit atmospheric pressure, and core telemetry...
-                  </span>
-                ) : stress > 50 ? (
-                  `Cardiovascular frequency is elevated at ${hr} BPM with sympathetic stress response (+${stress}%). Hemodynamic stability remains intact but metabolic load is elevated. Recommend initiating the hydration protocol.`
-                ) : (
-                  `This simulation presents baseline demonstration inputs for ${name}. No clinical thresholds or diagnosis are being evaluated.`
-                )}
-              </p>
-            </div>
-
-            {/* 3 Key Risk Indicators */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }} className="med-risk-row">
-              <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DCS SCENARIO INDEX · DEMO</div>
-                <div className="font-orbitron" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--hud-emerald)', margin: '4px 0' }}>
-                  0.02%
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fixed illustrative value • not a risk assessment</div>
-              </div>
-
-              <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>HYPOXIA SCENARIO INDEX · DEMO</div>
-                <div className="font-orbitron" style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--hud-emerald)', margin: '4px 0' }}>
-                  0.00%
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fixed illustrative value • simulated SpO₂ {spo2}%</div>
-              </div>
-
-              <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>COGNITIVE WORKLOAD</div>
-                <div className="font-orbitron" style={{ fontSize: '1.4rem', fontWeight: 700, color: stress > 50 ? 'var(--hud-crimson)' : 'var(--hud-cyan)', margin: '4px 0' }}>
-                  {stress}%
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {stress > 50 ? 'Elevated demo input' : 'Baseline demo input'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Meaningful Protocol Countermeasures */}
-          <div className="hud-panel" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div>
-                <h3 className="font-orbitron" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  RECOMMENDED MEDICAL COUNTERMEASURES
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Dispatch simulated life support and hydration protocols
-                </div>
-              </div>
-
-              <span className="cyber-badge cyber-badge-cyan">SIMULATED ACTIONS</span>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
-              <button
-                onClick={() => setActiveProtocol('hydration')}
-                className={`hud-btn ${activeProtocol === 'hydration' ? 'hud-btn-primary' : ''}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem' }}
-              >
-                💧 Hydration Pack Dispense
-              </button>
-
-              <button
-                onClick={() => setActiveProtocol('thermal')}
-                className={`hud-btn ${activeProtocol === 'thermal' ? 'hud-btn-primary' : ''}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem' }}
-              >
-                ❄️ LCVG Temp Regulate (+0.5°C)
-              </button>
-
-              <button
-                onClick={() => setActiveProtocol('oxygen')}
-                className={`hud-btn ${activeProtocol === 'oxygen' ? 'hud-btn-primary' : ''}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem' }}
-              >
-                💨 100% Pre-Breathe Flush
-              </button>
-            </div>
-
-            {activeProtocol && (
-              <div style={{
-                padding: '12px 16px',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '6px',
-                fontSize: '0.82rem',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span className="status-dot nominal" />
-                <span>
-                  ✓ Simulated protocol <strong>{activeProtocol.toUpperCase()}</strong> selected. No physical controller or hardware command was executed.
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Scan History & Operational Disclaimer */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Scan History */}
-          <div className="hud-panel" style={{ padding: '22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 className="font-orbitron" style={{ fontSize: '0.9rem', color: '#fff', margin: 0 }}>
-                DIAGNOSTIC HISTORY
-              </h4>
-              <span className="font-mono" style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                {scanHistory.length} Recorded
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {scanHistory.map((scan) => (
-                <div
-                  key={scan.id}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '6px',
-                    padding: '12px 14px'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span className="font-mono" style={{ fontSize: '0.74rem', color: 'var(--hud-cyan)' }}>
-                      {scan.id} • {scan.time}
-                    </span>
-                    <span className="cyber-badge cyber-badge-emerald" style={{ fontSize: '0.62rem' }}>
-                      {scan.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>
-                    {scan.subject}
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 6px 0' }}>
-                    HR: {scan.hr} BPM • Stress: {scan.stress}%
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    {scan.notes}
-                  </div>
-                </div>
               ))}
             </div>
-          </div>
-
-          {/* Operational Disclaimer */}
-          <div style={{
-            padding: '16px 18px',
-            background: 'rgba(245, 158, 11, 0.06)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            borderRadius: '6px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <span style={{ fontSize: '1rem' }}>⚠️</span>
-              <strong style={{ fontSize: '0.82rem', color: 'var(--hud-amber)' }}>
-                SIMULATION NOTICE
-              </strong>
-            </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-              The AI Bio-Diagnostic Advisor is a mission simulation co-pilot for operational demonstration. It does not perform actual medical diagnosis or communicate with physical hardware.
-            </p>
-          </div>
+            {activeProtocol && <p className="medical-protocol-feedback" role="status"><span aria-hidden="true">✓</span> {protocols.find(protocol => protocol.id === activeProtocol)?.name} selected for demonstration. No hardware command was sent.</p>}
+          </section>
         </div>
-      </div>
 
-      <style>{`
-        @media (max-width: 1080px) {
-          .med-section-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 640px) {
-          .med-risk-row {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </div>
+        <aside className="medical-history-column">
+          <section className="medical-history-panel" aria-labelledby="medical-history-title">
+            <div className="medical-panel-heading medical-panel-heading--history">
+              <div><p className="medical-eyebrow">RECORD / LOCAL SESSION</p><h2 id="medical-history-title">Scan history</h2></div>
+              <span className="medical-history-count">{scanHistory.length} <small>records</small></span>
+            </div>
+            <p className="medical-history-context">Completed demonstrations across crew selection.</p>
+            <ol className="medical-history-list" aria-label="Completed simulated scan history" aria-live="polite">
+              {scanHistory.map(scan => (
+                <li key={scan.id} className="medical-history-entry">
+                  <div className="medical-history-entry__top"><span>{scan.id}</span><time>{scan.time}</time></div>
+                  <span className="medical-history-entry__status">{scan.status}</span>
+                  <strong>{scan.subject}</strong>
+                  <p>HR {scan.hr} bpm <span>·</span> Stress {scan.stress}%</p>
+                  <small>{scan.notes}</small>
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section className="medical-disclosure" aria-labelledby="medical-disclosure-title">
+            <span className="medical-disclosure__mark" aria-hidden="true">i</span>
+            <div><h2 id="medical-disclosure-title">Simulation limitations</h2><p>This demonstration is not clinically validated and does not diagnose, assess medical risk, or communicate with spacecraft hardware. All displayed readings and outputs are illustrative.</p></div>
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }
