@@ -1,9 +1,6 @@
 #Kaggle notebook source [dat.4.10.2026]
 
 
-========
-
-
 import glob, pandas as pd
 
 files = glob.glob('/kaggle/input/**/*telemetry*.csv', recursive=True)
