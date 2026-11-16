@@ -145,6 +145,28 @@ This release demonstrates a front-end operational workflow. It has no spacecraft
 
 Possible next steps include adding an authenticated operator workflow, documenting a verified hosted deployment, and designing a stable database-side pagination or aggregation strategy for historical charts.
 
+## Software Prototype:
+
+
+Uploading WhatsApp Video 2026-11-15 at 21.31.59.mp4…
+
+
+
+
+Uploading WhatsApp Video 2026-11-15 at 22.05.21 (1).mp4…
+
+
+
+Uploading WhatsApp Video 2026-11-15 at 22.23.29.mp4…
+
+
+
+
+
+
+
+
+
 ## Credits and license
 
 The interface uses the packages listed in [`Project-Bio-Tesseract/file_arnav/package.json`](Project-Bio-Tesseract/file_arnav/package.json). No repository-root `LICENSE` file is present. The root prototype's package metadata lists MIT, but that does not establish licensing for the complete repository; the project owner should confirm repository-wide terms before public redistribution.
