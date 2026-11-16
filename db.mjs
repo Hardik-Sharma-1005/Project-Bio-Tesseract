@@ -136,3 +136,7 @@ export async function insertTelemetryRecord(parameterId, value, unit = "") {
   `;
   return await executeQuery(sql, [parameterId, value, unit]);
 }
+
+
+
+
