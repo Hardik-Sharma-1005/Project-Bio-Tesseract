@@ -147,15 +147,14 @@ Possible next steps include adding an authenticated operator workflow, documenti
 
 ## Software Prototype:
 
-
+# Inertial Measurement Unit (inspired by HyperIMU)
 https://github.com/user-attachments/assets/b9f978ec-1f80-49f9-97c8-79d77e025526
 
-
+# Remote Photoplethysmography (rPPG)
 https://github.com/user-attachments/assets/865723a2-a29b-45c3-ac0b-b2a1358a884d
 
-
+# Geiger–Müller Counter DEMO
 https://github.com/user-attachments/assets/44ab7abd-0763-4741-9727-d42ed9a0fc1f
-
 
 ## Credits and license
 
