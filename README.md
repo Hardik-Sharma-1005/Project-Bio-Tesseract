@@ -148,6 +148,15 @@ Possible next steps include adding an authenticated operator workflow, documenti
 ## Software Prototype:
 
 
+https://github.com/user-attachments/assets/b9f978ec-1f80-49f9-97c8-79d77e025526
+
+
+https://github.com/user-attachments/assets/865723a2-a29b-45c3-ac0b-b2a1358a884d
+
+
+https://github.com/user-attachments/assets/44ab7abd-0763-4741-9727-d42ed9a0fc1f
+
+
 ## Credits and license
 
 The interface uses the packages listed in [`Project-Bio-Tesseract/file_arnav/package.json`](Project-Bio-Tesseract/file_arnav/package.json). No repository-root `LICENSE` file is present. The root prototype's package metadata lists MIT, but that does not establish licensing for the complete repository; the project owner should confirm repository-wide terms before public redistribution.
