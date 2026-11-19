@@ -33,6 +33,17 @@ Crew health and vehicle conditions are different kinds of information, but opera
 - **Interactive telemetry:** chart inspection with timestamped values, plus a connected life-systems illustration on the landing experience.
 - **Shared dashboard state:** crew selection and mission events remain available as the operator changes sections.
 
+## Software Prototype:
+
+# Inertial Measurement Unit (inspired by HyperIMU)
+https://github.com/user-attachments/assets/b9f978ec-1f80-49f9-97c8-79d77e025526
+
+# Remote Photoplethysmography (rPPG)
+https://github.com/user-attachments/assets/865723a2-a29b-45c3-ac0b-b2a1358a884d
+
+# Geiger–Müller Counter DEMO
+https://github.com/user-attachments/assets/44ab7abd-0763-4741-9727-d42ed9a0fc1f
+
 ## System workflow
 
 The dashboard keeps generated live simulation and stored historical telemetry as separate sources. Shared application state supplies the selected simulated crew member and mission events to the operational views. BioAstra interprets supported commands against that state; historical data is fetched separately through the Supabase browser client.
@@ -144,17 +155,6 @@ Crew vitals, suit readings, mission events, and anomaly scenarios are generated 
 This release demonstrates a front-end operational workflow. It has no spacecraft hardware connection, clinical decision support, or authenticated operator and role-management system. Historical chart samples are bounded; the telemetry setup notes describe those query limits.
 
 Possible next steps include adding an authenticated operator workflow, documenting a verified hosted deployment, and designing a stable database-side pagination or aggregation strategy for historical charts.
-
-## Software Prototype:
-
-# Inertial Measurement Unit (inspired by HyperIMU)
-https://github.com/user-attachments/assets/b9f978ec-1f80-49f9-97c8-79d77e025526
-
-# Remote Photoplethysmography (rPPG)
-https://github.com/user-attachments/assets/865723a2-a29b-45c3-ac0b-b2a1358a884d
-
-# Geiger–Müller Counter DEMO
-https://github.com/user-attachments/assets/44ab7abd-0763-4741-9727-d42ed9a0fc1f
 
 ## Credits and license
 
