@@ -28,6 +28,7 @@ Crew health and vehicle conditions are different kinds of information, but opera
 - **Bio-Monitor:** shared crew selection, simulated vital signs, ECG-style visualization, and historical telemetry charts when Supabase is configured.
 - **Life Support:** simulated suit and life-support readings for the selected crew member.
 - **Crew & Alerts:** crew roster and alert acknowledgement, selection, and resolution states.
+- **Software Vitals and Environmental Detectors:** proposed three software based prototypes with open source codes to measure/detect the inertial movements, pulse neural changes and radiation dose exposure (initial software prototypes [v0].
 - **Medical Advisor:** an explicitly labeled simulation that explores selected-crew readings and scenario outputs; it is not a diagnostic tool.
 - **BioAstra mission copilot:** a deterministic, local command interface for supported mission queries and navigation, with confirmation for state-changing actions.
 - **Interactive telemetry:** chart inspection with timestamped values, plus a connected life-systems illustration on the landing experience.
